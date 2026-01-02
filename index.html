@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>NeuroDiario</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Animaciones suaves */
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        .slide-up { animation: slideUp 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        /* Evitar rebote en iOS */
+        body { overscroll-behavior-y: none; }
+        /* Estilo para inputs range */
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 20px; width: 20px; border-radius: 50%; background: #6366f1; margin-top: -8px; box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #cbd5e1; border-radius: 2px; }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans transition-colors duration-300 min-h-screen pb-24">
+
+    <!-- APP CONTAINER -->
+    <div id="app" class="max-w-md mx-auto relative min-h-screen bg-slate-900 shadow-2xl overflow-hidden">
+        
+        <!-- HEADER -->
+        <header class="p-4 flex justify-between items-center sticky top-0 z-20 bg-slate-900/95 backdrop-blur border-b border-slate-800">
+            <div class="flex items-center gap-2">
+                <svg class="w-6 h-6 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                <h1 class="text-xl font-bold tracking-tight">NeuroDiario</h1>
+            </div>
+            <button id="themeToggle" class="p-2 rounded-full bg-slate-800 text-yellow-300 hover:bg-slate-700 transition">
+                <!-- Sun Icon -->
+                <svg id="iconSun" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                <!-- Moon Icon (Hidden by default logic) -->
+                <svg id="iconMoon" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+            </button>
+        </header>
+
+        <!-- MAIN CONTENT AREA -->
+        <main id="mainContent" class="p-4"></main>
+
+        <!-- BOTTOM NAV -->
+        <nav class="fixed bottom-0 w-full max-w-md bg-slate-900 border-t border-slate-800 flex justify-around p-1 z-30 safe-area-pb">
+            <button onclick="router('list')" class="nav-btn flex-1 p-2 flex flex-col items-center text-slate-400 hover:text-indigo-400 transition" data-target="list">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <span class="text-xs mt-1">Historial</span>
+            </button>
+            <button onclick="router('form')" class="nav-btn flex-1 p-2 flex flex-col items-center text-slate-400 hover:text-indigo-400 transition" data-target="form">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <span class="text-xs mt-1">Registrar</span>
+            </button>
+            <button onclick="router('stats')" class="nav-btn flex-1 p-2 flex flex-col items-center text-slate-400 hover:text-indigo-400 transition" data-target="stats">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                <span class="text-xs mt-1">Resumen</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // CONFIG
+        const ZONES = [
+            { id: 'frente', label: 'Frente', color: 'bg-blue-500' },
+            { id: 'sien_izq', label: 'Sien Izq.', color: 'bg-purple-500' },
+            { id: 'sien_der', label: 'Sien Der.', color: 'bg-purple-500' },
+            { id: 'nuca', label: 'Nuca', color: 'bg-orange-500' },
+            { id: 'coronilla', label: 'Coronilla', color: 'bg-yellow-500' },
+            { id: 'ojo_izq', label: 'Ojo Izq.', color: 'bg-red-500' },
+            { id: 'ojo_der', label: 'Ojo Der.', color: 'bg-red-500' },
+            { id: 'global', label: 'Toda la cabeza', color: 'bg-slate-500' },
+        ];
+
+        const INTENSITY_COLORS = {
+            1: 'bg-green-400', 2: 'bg-green-500', 3: 'bg-yellow-400', 4: 'bg-yellow-500',
+            5: 'bg-orange-400', 6: 'bg-orange-500', 7: 'bg-red-400', 8: 'bg-red-500',
+            9: 'bg-red-600', 10: 'bg-red-700'
+        };
+
+        // STATE
+        let state = {
+            entries: JSON.parse(localStorage.getItem('headache_entries')) || [],
+            view: 'list', // list, form, stats
+            darkMode: true,
+            formData: resetFormData()
+        };
+
+        function resetFormData() {
+            // Ajustar zona horaria local
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            return {
+                date: now.toISOString().slice(0, 16),
+                zone: '',
+                intensity: 5,
+                duration: '',
+                durationUnit: 'horas',
+                medication: ''
+            };
+        }
+
+        // DOM ELEMENTS
+        const mainContent = document.getElementById('mainContent');
+        const themeToggle = document.getElementById('themeToggle');
+        const appContainer = document.getElementById('app');
+        const body = document.body;
+
+        // INIT
+        function init() {
+            render();
+            updateTheme();
+        }
+
+        // ROUTER & RENDER
+        function router(viewName) {
+            state.view = viewName;
+            render();
+        }
+
+        function render() {
+            // Update Nav Active State
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                const isActive = btn.dataset.target === state.view;
+                if(isActive) {
+                    btn.classList.add('text-indigo-500', 'border-t-2', 'border-indigo-500');
+                    btn.classList.remove('text-slate-400');
+                } else {
+                    btn.classList.remove('text-indigo-500', 'border-t-2', 'border-indigo-500');
+                    btn.classList.add('text-slate-400');
+                }
+            });
+
+            // Render Views
+            mainContent.innerHTML = '';
+            if (state.view === 'list') renderList();
+            else if (state.view === 'form') renderForm();
+            else if (state.view === 'stats') renderStats();
+        }
+
+        // --- VIEW: LIST ---
+        function renderList() {
+            const container = document.createElement('div');
+            container.className = 'fade-in space-y-4';
+
+            // Header
+            const header = document.createElement('div');
+            header.className = 'flex justify-between items-center mb-6';
+            header.innerHTML = `
+                <h2 class="text-2xl font-bold">Historial</h2>
+                <button onclick="router('form')" class="bg-indigo-600 text-white p-2 rounded-lg shadow-lg shadow-indigo-500/30 hover:bg-indigo-700">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                </button>
+            `;
+            container.appendChild(header);
+
+            if (state.entries.length === 0) {
+                container.innerHTML += `
+                    <div class="text-center py-20 opacity-50">
+                        <svg class="w-16 h-16 mx-auto mb-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <p>No hay registros aún.</p>
+                        <p class="text-sm">¡Esperemos que siga así!</p>
+                    </div>
+                `;
+            } else {
+                state.entries.forEach(entry => {
+                    const zone = ZONES.find(z => z.id === entry.zone) || { label: entry.zone, color: 'bg-gray-500' };
+                    const date = new Date(entry.date);
+                    const dateStr = date.toLocaleDateString();
+                    const timeStr = date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                    
+                    const card = document.createElement('div');
+                    card.className = `p-4 rounded-2xl border relative group transition-all bg-slate-800 border-slate-700 mb-4 hover:bg-slate-750`;
+                    card.innerHTML = `
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <p class="text-xs text-slate-400 font-medium uppercase tracking-wider flex items-center gap-1">
+                                    <span>${dateStr}</span> <span class="mx-1">•</span> <span>${timeStr}</span>
+                                </p>
+                                <h3 class="font-bold text-lg mt-1 text-white">${zone.label}</h3>
+                            </div>
+                            <div class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-white text-sm ${INTENSITY_COLORS[entry.intensity] || 'bg-slate-500'}">
+                                ${entry.intensity}
+                            </div>
+                        </div>
+                        <div class="flex flex-wrap gap-2 text-sm mt-3">
+                            ${entry.duration ? `<span class="px-2 py-1 rounded-md flex items-center gap-1 bg-slate-700 text-slate-300">⏱ ${entry.duration} ${entry.durationUnit}</span>` : ''}
+                            ${entry.medication ? `<span class="px-2 py-1 rounded-md flex items-center gap-1 bg-indigo-900/50 text-indigo-300">💊 ${entry.medication}</span>` : ''}
+                        </div>
+                        <button onclick="deleteEntry(${entry.id})" class="absolute top-4 right-4 text-slate-500 hover:text-red-500 p-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    `;
+                    container.appendChild(card);
+                });
+            }
+            mainContent.appendChild(container);
+        }
+
+        // --- VIEW: FORM ---
+        function renderForm() {
+            const container = document.createElement('div');
+            container.className = 'slide-up pb-10';
+            
+            container.innerHTML = `
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold">Registrar Dolor</h2>
+                    <button onclick="router('list')" class="text-slate-500 hover:text-white">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+
+                <form id="addForm" class="space-y-6">
+                    <!-- FECHA -->
+                    <div class="p-4 rounded-2xl bg-slate-800">
+                        <label class="flex items-center gap-2 text-sm font-medium text-slate-400 mb-2">📅 ¿Cuándo empezó?</label>
+                        <input type="datetime-local" id="f_date" required class="w-full p-3 rounded-xl bg-slate-900 border border-slate-700 text-white focus:border-indigo-500 outline-none" value="${state.formData.date}">
+                    </div>
+
+                    <!-- ZONA -->
+                    <div class="p-4 rounded-2xl bg-slate-800">
+                        <label class="flex items-center gap-2 text-sm font-medium text-slate-400 mb-3">📍 ¿Dónde nace el dolor?</label>
+                        <div class="grid grid-cols-2 gap-2" id="zoneGrid">
+                            ${ZONES.map(z => `
+                                <button type="button" class="zone-btn p-3 rounded-xl text-sm font-semibold transition-all border-2 border-slate-700 text-slate-300 hover:bg-slate-700" 
+                                    data-id="${z.id}" onclick="selectZone('${z.id}')">
+                                    ${z.label}
+                                </button>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <!-- INTENSIDAD -->
+                    <div class="p-4 rounded-2xl bg-slate-800">
+                        <div class="flex justify-between items-end mb-2">
+                            <label class="flex items-center gap-2 text-sm font-medium text-slate-400">⚡ Intensidad</label>
+                            <span id="intensityVal" class="text-2xl font-bold px-3 py-1 rounded-lg text-white bg-orange-400">5</span>
+                        </div>
+                        <input type="range" id="f_intensity" min="1" max="10" step="1" value="5" 
+                            class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer"
+                            oninput="updateIntensity(this.value)">
+                        <div class="flex justify-between text-xs text-slate-500 mt-2">
+                            <span>Molestia</span>
+                            <span>Incapacitante</span>
+                        </div>
+                    </div>
+
+                    <!-- EXTRAS -->
+                    <div class="p-4 rounded-2xl space-y-4 bg-slate-800">
+                        <div>
+                            <label class="flex items-center gap-2 text-sm font-medium text-slate-400 mb-2">⏱ Duración</label>
+                            <div class="flex gap-2">
+                                <input type="number" id="f_duration" placeholder="0" class="flex-1 p-3 rounded-xl bg-slate-900 border border-slate-700 text-white outline-none">
+                                <select id="f_durUnit" class="p-3 rounded-xl bg-slate-900 border border-slate-700 text-white outline-none">
+                                    <option value="minutos">Minutos</option>
+                                    <option value="horas" selected>Horas</option>
+                                    <option value="días">Días</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="flex items-center gap-2 text-sm font-medium text-slate-400 mb-2">💊 Medicamento</label>
+                            <input type="text" id="f_meds" placeholder="Ej. Ibuprofeno" class="w-full p-3 rounded-xl bg-slate-900 border border-slate-700 text-white outline-none">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full py-4 rounded-xl bg-indigo-600 text-white font-bold text-lg shadow-lg hover:bg-indigo-700 transition-all flex justify-center items-center gap-2">
+                        💾 Guardar Registro
+                    </button>
+                </form>
+            `;
+            mainContent.appendChild(container);
+            
+            // Event Listeners for Form
+            document.getElementById('addForm').onsubmit = (e) => {
+                e.preventDefault();
+                saveEntry();
+            };
+        }
+
+        // --- VIEW: STATS ---
+        function renderStats() {
+            const total = state.entries.length;
+            const avgIntensity = total > 0 ? (state.entries.reduce((a, b) => a + b.intensity, 0) / total).toFixed(1) : '-';
+            
+            // Calc zones
+            const zoneCounts = {};
+            state.entries.forEach(e => zoneCounts[e.zone] = (zoneCounts[e.zone] || 0) + 1);
+            const sortedZones = Object.entries(zoneCounts).sort((a,b) => b[1] - a[1]);
+
+            // Calc meds
+            const meds = [...new Set(state.entries.map(e => e.medication).filter(Boolean))];
+
+            mainContent.innerHTML = `
+                <div class="fade-in">
+                    <h2 class="text-2xl font-bold mb-6">Resumen</h2>
+                    
+                    <div class="grid grid-cols-2 gap-4 mb-6">
+                        <div class="p-4 rounded-2xl bg-slate-800">
+                            <p class="text-sm text-slate-400">Total Registros</p>
+                            <p class="text-3xl font-bold text-indigo-500">${total}</p>
+                        </div>
+                        <div class="p-4 rounded-2xl bg-slate-800">
+                            <p class="text-sm text-slate-400">Intensidad Media</p>
+                            <p class="text-3xl font-bold text-orange-500">${avgIntensity}</p>
+                        </div>
+                    </div>
+
+                    <div class="p-5 rounded-2xl mb-6 bg-slate-800">
+                        <h3 class="text-sm font-bold text-slate-400 mb-4 uppercase tracking-wider">Zonas más frecuentes</h3>
+                        <div class="space-y-3">
+                            ${sortedZones.length > 0 ? sortedZones.map(([zId, count]) => {
+                                const pct = Math.round((count/total)*100);
+                                const label = ZONES.find(z => z.id === zId)?.label || zId;
+                                return `
+                                    <div>
+                                        <div class="flex justify-between text-sm mb-1 text-slate-300">
+                                            <span>${label}</span>
+                                            <span class="text-slate-500">${count} (${pct}%)</span>
+                                        </div>
+                                        <div class="w-full h-2 bg-slate-700 rounded-full overflow-hidden">
+                                            <div class="h-full bg-indigo-500" style="width: ${pct}%"></div>
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('') : '<p class="text-slate-500 italic">Sin datos suficientes</p>'}
+                        </div>
+                    </div>
+
+                    <div class="p-5 rounded-2xl bg-indigo-900/20 border border-indigo-500/20">
+                        <h3 class="font-bold mb-2 text-indigo-300">Medicamentos Usados</h3>
+                        <div class="flex flex-wrap gap-2">
+                            ${meds.length > 0 ? meds.map(m => `
+                                <span class="text-xs px-2 py-1 rounded-full bg-slate-700 text-slate-200 border border-slate-600">${m}</span>
+                            `).join('') : '<span class="text-sm text-slate-500">Ninguno registrado</span>'}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // --- ACTIONS ---
+        function selectZone(id) {
+            state.formData.zone = id;
+            // Update UI
+            document.querySelectorAll('.zone-btn').forEach(btn => {
+                if(btn.dataset.id === id) {
+                    const color = ZONES.find(z => z.id === id).color;
+                    btn.className = `zone-btn p-3 rounded-xl text-sm font-bold transition-all transform scale-105 border-2 border-white shadow-lg text-white ${color}`;
+                } else {
+                    btn.className = `zone-btn p-3 rounded-xl text-sm font-semibold transition-all border-2 border-slate-700 text-slate-300 hover:bg-slate-700`;
+                }
+            });
+        }
+
+        function updateIntensity(val) {
+            state.formData.intensity = parseInt(val);
+            const el = document.getElementById('intensityVal');
+            el.innerText = val;
+            el.className = `text-2xl font-bold px-3 py-1 rounded-lg text-white ${INTENSITY_COLORS[val]}`;
+        }
+
+        function saveEntry() {
+            if(!state.formData.zone) {
+                alert("Por favor, selecciona una zona de dolor.");
+                return;
+            }
+            const newEntry = {
+                id: Date.now(),
+                date: document.getElementById('f_date').value,
+                zone: state.formData.zone,
+                intensity: state.formData.intensity,
+                duration: document.getElementById('f_duration').value,
+                durationUnit: document.getElementById('f_durUnit').value,
+                medication: document.getElementById('f_meds').value
+            };
+            
+            state.entries.unshift(newEntry);
+            localStorage.setItem('headache_entries', JSON.stringify(state.entries));
+            state.formData = resetFormData();
+            router('list');
+        }
+
+        function deleteEntry(id) {
+            if(confirm("¿Eliminar registro?")) {
+                state.entries = state.entries.filter(e => e.id !== id);
+                localStorage.setItem('headache_entries', JSON.stringify(state.entries));
+                renderList();
+            }
+        }
+
+        // --- THEME ---
+        // Force dark mode for this headache app as requested
+        function updateTheme() {
+            if(state.darkMode) {
+                body.classList.add('dark');
+                document.getElementById('iconSun').classList.remove('hidden');
+                document.getElementById('iconMoon').classList.add('hidden');
+            } else {
+                // Light mode logic could go here, but styles are hardcoded to Slate-900/800 for comfort
+                // Let's just toggle some opacities or backgrounds if user insists
+                // For this single-file version, I kept it Dark-Preferred for migraines.
+            }
+        }
+
+        themeToggle.onclick = () => {
+            // Optional: Implement full light mode toggle if needed.
+            // Currently fixed to dark for eye comfort.
+            alert("Modo oscuro fijo activado para proteger tus ojos durante el dolor.");
+        };
+
+        // Start
+        init();
+
+    </script>
+</body>
+</html>
