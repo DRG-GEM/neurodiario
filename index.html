@@ -27,6 +27,13 @@
             canvas { max-height: 300px !important; }
             .print-break { break-inside: avoid; }
         }
+        
+        /* Checkbox oculto para etiquetas seleccionables */
+        .tag-checkbox:checked + div {
+            background-color: #4f46e5; /* Indigo 600 */
+            color: white;
+            border-color: #4f46e5;
+        }
     </style>
 </head>
 <body class="bg-slate-900 text-slate-100 font-sans transition-colors duration-300 min-h-screen pb-24">
@@ -88,6 +95,9 @@
             9: 'bg-red-600', 10: 'bg-red-700'
         };
 
+        const TRIGGERS = ['Estrés', 'Falta sueño', 'Alcohol', 'Menstruación', 'Cambio tiempo', 'Pantallas', 'Comida', 'Olores'];
+        const SYMPTOMS = ['Náuseas', 'Vómitos', 'Fotofobia (Luz)', 'Fonofobia (Ruido)', 'Aura Visual', 'Mareo'];
+
         // VARIABLES GLOBALES PARA GRÁFICOS
         let frequencyChart = null;
         let zoneChart = null;
@@ -102,14 +112,15 @@
         };
 
         function resetFormData() {
-            // Usamos formato YYYY-MM-DD simple
             return {
                 date: new Date().toISOString().split('T')[0],
                 zone: '',
                 intensity: 5,
                 duration: '',
                 durationUnit: 'horas',
-                medication: ''
+                medication: '',
+                triggers: [],
+                symptoms: []
             };
         }
 
@@ -146,7 +157,6 @@
 
             // Render Views
             mainContent.innerHTML = '';
-            // Limpiar gráficos anteriores si existen
             if(frequencyChart) { frequencyChart.destroy(); frequencyChart = null; }
             if(zoneChart) { zoneChart.destroy(); zoneChart = null; }
 
@@ -183,16 +193,22 @@
                 state.entries.forEach(entry => {
                     const zone = ZONES.find(z => z.id === entry.zone) || { label: entry.zone, color: 'bg-gray-500' };
                     
-                    // Formato de fecha seguro
                     let dateStr = "";
                     try {
                         const rawDate = entry.date.split('T')[0];
                         const [y, m, d] = rawDate.split('-');
                         dateStr = `${d}/${m}/${y}`;
-                    } catch (e) {
-                        dateStr = entry.date;
-                    }
+                    } catch (e) { dateStr = entry.date; }
                     
+                    // Preparar etiquetas extra
+                    let extraTags = '';
+                    if(entry.triggers && entry.triggers.length > 0) {
+                        extraTags += `<div class="mt-2 flex flex-wrap gap-1">${entry.triggers.map(t => `<span class="text-[10px] px-1.5 py-0.5 rounded bg-orange-900/40 text-orange-200 border border-orange-800/50">${t}</span>`).join('')}</div>`;
+                    }
+                    if(entry.symptoms && entry.symptoms.length > 0) {
+                        extraTags += `<div class="mt-1 flex flex-wrap gap-1">${entry.symptoms.map(s => `<span class="text-[10px] px-1.5 py-0.5 rounded bg-purple-900/40 text-purple-200 border border-purple-800/50">${s}</span>`).join('')}</div>`;
+                    }
+
                     const card = document.createElement('div');
                     card.className = `p-4 rounded-2xl border relative group transition-all bg-slate-800 border-slate-700 mb-4 hover:bg-slate-750`;
                     card.innerHTML = `
@@ -207,10 +223,11 @@
                                 ${entry.intensity}
                             </div>
                         </div>
-                        <div class="flex flex-wrap gap-2 text-sm mt-3">
+                        <div class="flex flex-wrap gap-2 text-sm mt-2">
                             ${entry.duration ? `<span class="px-2 py-1 rounded-md flex items-center gap-1 bg-slate-700 text-slate-300">⏱ ${entry.duration} ${entry.durationUnit}</span>` : ''}
                             ${entry.medication ? `<span class="px-2 py-1 rounded-md flex items-center gap-1 bg-indigo-900/50 text-indigo-300">💊 ${entry.medication}</span>` : ''}
                         </div>
+                        ${extraTags}
                         <button onclick="deleteEntry(${entry.id})" class="absolute top-4 right-4 text-slate-500 hover:text-red-500 p-2">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                         </button>
@@ -268,6 +285,36 @@
                             <span>Incapacitante</span>
                         </div>
                     </div>
+                    
+                    <!-- DESENCADENANTES -->
+                    <div class="p-4 rounded-2xl bg-slate-800">
+                        <label class="flex items-center gap-2 text-sm font-medium text-slate-400 mb-3">❓ Posibles causas (Desencadenantes)</label>
+                        <div class="flex flex-wrap gap-2">
+                            ${TRIGGERS.map(t => `
+                                <label class="cursor-pointer">
+                                    <input type="checkbox" name="triggers" value="${t}" class="tag-checkbox hidden">
+                                    <div class="px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-300 text-sm transition-colors hover:bg-slate-700 select-none">
+                                        ${t}
+                                    </div>
+                                </label>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <!-- SÍNTOMAS -->
+                    <div class="p-4 rounded-2xl bg-slate-800">
+                        <label class="flex items-center gap-2 text-sm font-medium text-slate-400 mb-3">👁️ Síntomas Acompañantes</label>
+                        <div class="flex flex-wrap gap-2">
+                            ${SYMPTOMS.map(s => `
+                                <label class="cursor-pointer">
+                                    <input type="checkbox" name="symptoms" value="${s}" class="tag-checkbox hidden">
+                                    <div class="px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-300 text-sm transition-colors hover:bg-slate-700 select-none">
+                                        ${s}
+                                    </div>
+                                </label>
+                            `).join('')}
+                        </div>
+                    </div>
 
                     <!-- EXTRAS -->
                     <div class="p-4 rounded-2xl space-y-4 bg-slate-800">
@@ -308,9 +355,14 @@
                 <div class="fade-in pb-10">
                     <div class="flex justify-between items-center mb-6 no-print">
                         <h2 class="text-2xl font-bold">Informe Mensual</h2>
-                        <button onclick="window.print()" class="text-indigo-400 hover:text-indigo-300">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
-                        </button>
+                        <div class="flex gap-2">
+                            <button onclick="exportToCSV()" class="text-green-400 hover:text-green-300 p-2" title="Exportar CSV">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            </button>
+                            <button onclick="window.print()" class="text-indigo-400 hover:text-indigo-300 p-2" title="Imprimir">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                            </button>
+                        </div>
                     </div>
 
                     <!-- SELECTOR DE MES -->
@@ -380,13 +432,11 @@
             const monthlyEntries = state.entries.filter(e => e.date.startsWith(state.statsMonth));
 
             // 2. DATOS PARA BARRAS (DÍAS)
-            // Creamos un array con todos los días del mes vacíos
             const daysLabels = Array.from({length: daysInMonth}, (_, i) => i + 1);
             const intensityData = new Array(daysInMonth).fill(0);
             
             monthlyEntries.forEach(e => {
                 const day = parseInt(e.date.split('-')[2]);
-                // Si hay varios registros en un día, nos quedamos con la intensidad máxima
                 if (e.intensity > intensityData[day - 1]) {
                     intensityData[day - 1] = e.intensity;
                 }
@@ -402,11 +452,9 @@
             document.getElementById('statsAvg').innerText = avg;
 
             // CONFIGURAR CHART.JS
-            // Destruir anteriores si es refresco
             if(frequencyChart) frequencyChart.destroy();
             if(zoneChart) zoneChart.destroy();
 
-            // GRÁFICO BARRAS
             const ctxFreq = document.getElementById('chartFrequency').getContext('2d');
             frequencyChart = new Chart(ctxFreq, {
                 type: 'bar',
@@ -435,7 +483,6 @@
                 }
             });
 
-            // GRÁFICO DONUT
             if (Object.keys(zoneCounts).length > 0) {
                 const ctxZone = document.getElementById('chartZones').getContext('2d');
                 zoneChart = new Chart(ctxZone, {
@@ -459,7 +506,6 @@
                     }
                 });
             } else {
-                // Mensaje si no hay datos
                 const ctxZone = document.getElementById('chartZones').parentNode;
                 ctxZone.innerHTML = '<div class="h-48 flex items-center justify-center text-slate-500 italic">Sin datos este mes</div>';
             }
@@ -468,7 +514,6 @@
         // --- ACTIONS ---
         function selectZone(id) {
             state.formData.zone = id;
-            // Update UI
             document.querySelectorAll('.zone-btn').forEach(btn => {
                 if(btn.dataset.id === id) {
                     const color = ZONES.find(z => z.id === id).color;
@@ -491,6 +536,11 @@
                 alert("Por favor, selecciona una zona de dolor.");
                 return;
             }
+
+            // Capturar Checkboxes
+            const triggers = Array.from(document.querySelectorAll('input[name="triggers"]:checked')).map(el => el.value);
+            const symptoms = Array.from(document.querySelectorAll('input[name="symptoms"]:checked')).map(el => el.value);
+
             const newEntry = {
                 id: Date.now(),
                 date: document.getElementById('f_date').value,
@@ -498,7 +548,9 @@
                 intensity: state.formData.intensity,
                 duration: document.getElementById('f_duration').value,
                 durationUnit: document.getElementById('f_durUnit').value,
-                medication: document.getElementById('f_meds').value
+                medication: document.getElementById('f_meds').value,
+                triggers: triggers,
+                symptoms: symptoms
             };
             
             state.entries.unshift(newEntry);
@@ -515,23 +567,45 @@
             }
         }
 
+        function exportToCSV() {
+            if(state.entries.length === 0) {
+                alert("No hay datos para exportar.");
+                return;
+            }
+            
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "Fecha,Zona,Intensidad,Duracion,Unidad,Medicacion,Desencadenantes,Sintomas\n";
+            
+            state.entries.forEach(e => {
+                const zoneLabel = ZONES.find(z => z.id === e.zone)?.label || e.zone;
+                // Escape simple para evitar romper el CSV con comas
+                const triggers = (e.triggers || []).join('; ');
+                const symptoms = (e.symptoms || []).join('; ');
+                const med = (e.medication || '').replace(/,/g, ' ');
+
+                const row = `${e.date},${zoneLabel},${e.intensity},${e.duration || ''},${e.durationUnit || ''},${med},"${triggers}","${symptoms}"`;
+                csvContent += row + "\n";
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "neurodiario_export.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
         // --- THEME ---
-        // Force dark mode for this headache app as requested
         function updateTheme() {
             if(state.darkMode) {
                 body.classList.add('dark');
                 document.getElementById('iconSun').classList.remove('hidden');
                 document.getElementById('iconMoon').classList.add('hidden');
-            } else {
-                // Light mode logic could go here, but styles are hardcoded to Slate-900/800 for comfort
-                // Let's just toggle some opacities or backgrounds if user insists
-                // For this single-file version, I kept it Dark-Preferred for migraines.
             }
         }
 
         themeToggle.onclick = () => {
-            // Optional: Implement full light mode toggle if needed.
-            // Currently fixed to dark for eye comfort.
             alert("Modo oscuro fijo activado para proteger tus ojos durante el dolor.");
         };
 
