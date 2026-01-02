@@ -5,53 +5,66 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>NeuroDiario</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Agregamos Chart.js para los gráficos -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        slate: { 750: '#2d3748' } // Color custom para tarjetas hover
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        /* Animaciones suaves */
+        /* Animaciones */
         .fade-in { animation: fadeIn 0.3s ease-in-out; }
         .slide-up { animation: slideUp 0.3s ease-out; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        /* Evitar rebote en iOS */
+        
         body { overscroll-behavior-y: none; }
-        /* Estilo para inputs range */
+        
+        /* Inputs Range */
         input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 20px; width: 20px; border-radius: 50%; background: #6366f1; margin-top: -8px; box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
         input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #cbd5e1; border-radius: 2px; }
         
-        /* Estilos de impresión */
+        /* Print */
         @media print {
             .no-print { display: none !important; }
-            body, #app { background: white !important; color: black !important; min-height: auto !important; height: auto !important; overflow: visible !important; }
+            body, #app { background: white !important; color: black !important; height: auto !important; overflow: visible !important; }
             #mainContent { padding: 0 !important; }
             canvas { max-height: 300px !important; }
             .print-break { break-inside: avoid; }
         }
         
-        /* Checkbox oculto para etiquetas seleccionables */
+        /* Checkbox oculto */
         .tag-checkbox:checked + div {
-            background-color: #4f46e5; /* Indigo 600 */
-            color: white;
-            border-color: #4f46e5;
+            background-color: #4f46e5; color: white; border-color: #4f46e5;
         }
+        
+        /* Grid Calendario */
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
     </style>
 </head>
-<body class="bg-slate-900 text-slate-100 font-sans transition-colors duration-300 min-h-screen pb-24">
+<body class="bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-sans transition-colors duration-300 min-h-screen pb-24">
 
     <!-- APP CONTAINER -->
-    <div id="app" class="max-w-md mx-auto relative min-h-screen bg-slate-900 shadow-2xl overflow-hidden">
+    <div id="app" class="max-w-md mx-auto relative min-h-screen bg-slate-50 dark:bg-slate-900 shadow-2xl overflow-hidden">
         
         <!-- HEADER -->
-        <header class="p-4 flex justify-between items-center sticky top-0 z-20 bg-slate-900/95 backdrop-blur border-b border-slate-800 no-print">
+        <header class="p-4 flex justify-between items-center sticky top-0 z-20 bg-white/90 dark:bg-slate-900/95 backdrop-blur border-b border-slate-200 dark:border-slate-800 no-print transition-colors">
             <div class="flex items-center gap-2">
                 <svg class="w-6 h-6 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                 <h1 class="text-xl font-bold tracking-tight">NeuroDiario</h1>
             </div>
-            <button id="themeToggle" class="p-2 rounded-full bg-slate-800 text-yellow-300 hover:bg-slate-700 transition">
+            <button id="themeToggle" class="p-2 rounded-full bg-slate-200 dark:bg-slate-800 text-indigo-500 dark:text-yellow-300 hover:bg-slate-300 dark:hover:bg-slate-700 transition">
                 <!-- Sun Icon -->
-                <svg id="iconSun" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-                <!-- Moon Icon (Hidden by default logic) -->
-                <svg id="iconMoon" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                <svg id="iconSun" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                <!-- Moon Icon -->
+                <svg id="iconMoon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
             </button>
         </header>
 
@@ -59,18 +72,24 @@
         <main id="mainContent" class="p-4"></main>
 
         <!-- BOTTOM NAV -->
-        <nav class="fixed bottom-0 w-full max-w-md bg-slate-900 border-t border-slate-800 flex justify-around p-1 z-30 safe-area-pb no-print">
-            <button onclick="router('list')" class="nav-btn flex-1 p-2 flex flex-col items-center text-slate-400 hover:text-indigo-400 transition" data-target="list">
+        <nav class="fixed bottom-0 w-full max-w-md bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex justify-around p-1 z-30 safe-area-pb no-print transition-colors">
+            <button onclick="router('calendar')" class="nav-btn flex-1 p-2 flex flex-col items-center text-slate-400 hover:text-indigo-500 transition" data-target="calendar">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                <span class="text-[10px] mt-1 font-medium">Calendario</span>
+            </button>
+            <button onclick="router('list')" class="nav-btn flex-1 p-2 flex flex-col items-center text-slate-400 hover:text-indigo-500 transition" data-target="list">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                <span class="text-xs mt-1">Historial</span>
+                <span class="text-[10px] mt-1 font-medium">Historial</span>
             </button>
-            <button onclick="createNewEntry()" class="nav-btn flex-1 p-2 flex flex-col items-center text-slate-400 hover:text-indigo-400 transition" data-target="form">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                <span class="text-xs mt-1">Registrar</span>
+            <button onclick="createNewEntry()" class="nav-btn flex-1 p-2 flex flex-col items-center text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition" data-target="form">
+                <div class="bg-indigo-100 dark:bg-slate-800 p-2 rounded-xl -mt-4 shadow-lg border border-indigo-200 dark:border-slate-700">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                </div>
+                <span class="text-[10px] mt-1 font-bold">Registrar</span>
             </button>
-            <button onclick="router('stats')" class="nav-btn flex-1 p-2 flex flex-col items-center text-slate-400 hover:text-indigo-400 transition" data-target="stats">
+            <button onclick="router('stats')" class="nav-btn flex-1 p-2 flex flex-col items-center text-slate-400 hover:text-indigo-500 transition" data-target="stats">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
-                <span class="text-xs mt-1">Informe</span>
+                <span class="text-[10px] mt-1 font-medium">Informe</span>
             </button>
         </nav>
     </div>
@@ -96,21 +115,21 @@
         };
 
         const TRIGGERS = ['Estrés', 'Falta sueño', 'Alcohol', 'Menstruación', 'Cambio tiempo', 'Pantallas', 'Comida', 'Olores'];
-        const SYMPTOMS = ['Náuseas', 'Vómitos', 'Fotofobia (Luz)', 'Fonofobia (Ruido)', 'Aura Visual', 'Mareo'];
-
-        // VARIABLES GLOBALES PARA GRÁFICOS
-        let frequencyChart = null;
-        let zoneChart = null;
+        const SYMPTOMS = ['Náuseas', 'Vómitos', 'Fotofobia', 'Fonofobia', 'Aura', 'Mareo'];
 
         // STATE
         let state = {
             entries: JSON.parse(localStorage.getItem('headache_entries')) || [],
-            view: 'list', // list, form, stats
-            darkMode: true,
+            view: 'calendar', // Default view changed to calendar
+            darkMode: true, // Default preference
             formData: resetFormData(),
-            editingId: null, // Nuevo estado para saber si estamos editando
-            statsMonth: new Date().toISOString().slice(0, 7) // YYYY-MM actual
+            editingId: null,
+            calendarMonth: new Date(), // Object Date
+            statsMonth: new Date().toISOString().slice(0, 7)
         };
+
+        let frequencyChart = null;
+        let zoneChart = null;
 
         function resetFormData() {
             return {
@@ -128,26 +147,48 @@
         // DOM ELEMENTS
         const mainContent = document.getElementById('mainContent');
         const themeToggle = document.getElementById('themeToggle');
-        const appContainer = document.getElementById('app');
         const body = document.body;
+        const iconSun = document.getElementById('iconSun');
+        const iconMoon = document.getElementById('iconMoon');
 
         // INIT
         function init() {
-            render();
+            // Load theme preference if exists
+            const savedTheme = localStorage.getItem('theme');
+            if(savedTheme) {
+                state.darkMode = savedTheme === 'dark';
+            }
             updateTheme();
+            render();
         }
 
-        // ROUTER & RENDER
+        function updateTheme() {
+            if(state.darkMode) {
+                body.classList.add('dark');
+                iconSun.classList.remove('hidden');
+                iconMoon.classList.add('hidden');
+            } else {
+                body.classList.remove('dark');
+                iconSun.classList.add('hidden');
+                iconMoon.classList.remove('hidden');
+            }
+            localStorage.setItem('theme', state.darkMode ? 'dark' : 'light');
+        }
+
+        themeToggle.onclick = () => {
+            state.darkMode = !state.darkMode;
+            updateTheme();
+        };
+
         function router(viewName) {
             state.view = viewName;
             render();
         }
         
-        // Función específica para el botón de la barra de navegación "Registrar"
-        // para asegurarse de que limpia el estado de edición
-        function createNewEntry() {
+        function createNewEntry(dateStr = null) {
             state.editingId = null;
             state.formData = resetFormData();
+            if(dateStr) state.formData.date = dateStr;
             router('form');
         }
 
@@ -155,100 +196,200 @@
             // Update Nav Active State
             document.querySelectorAll('.nav-btn').forEach(btn => {
                 const isActive = btn.dataset.target === state.view;
-                if(isActive) {
-                    btn.classList.add('text-indigo-500', 'border-t-2', 'border-indigo-500');
+                if(isActive && btn.dataset.target !== 'form') {
+                    btn.classList.add('text-indigo-600', 'dark:text-indigo-400');
                     btn.classList.remove('text-slate-400');
-                } else {
-                    btn.classList.remove('text-indigo-500', 'border-t-2', 'border-indigo-500');
+                } else if (btn.dataset.target !== 'form') {
+                    btn.classList.remove('text-indigo-600', 'dark:text-indigo-400');
                     btn.classList.add('text-slate-400');
                 }
             });
 
-            // Render Views
             mainContent.innerHTML = '';
             if(frequencyChart) { frequencyChart.destroy(); frequencyChart = null; }
             if(zoneChart) { zoneChart.destroy(); zoneChart = null; }
 
-            if (state.view === 'list') renderList();
+            if (state.view === 'calendar') renderCalendar();
+            else if (state.view === 'list') renderList();
             else if (state.view === 'form') renderForm();
             else if (state.view === 'stats') renderStats();
         }
+
+        // --- VIEW: CALENDAR ---
+        function renderCalendar() {
+            const year = state.calendarMonth.getFullYear();
+            const month = state.calendarMonth.getMonth();
+            const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+            
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const daysInMonth = lastDay.getDate();
+            // Ajustar para que Lunes sea 0 (getDay(): 0 Dom, 1 Lun...) -> (day + 6) % 7
+            let startDay = (firstDay.getDay() + 6) % 7; 
+
+            // Datos del mes
+            const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
+            const monthEntries = state.entries.filter(e => e.date.startsWith(monthKey));
+            
+            // Mapeo día -> intensidad máxima
+            const dayMap = {};
+            monthEntries.forEach(e => {
+                const d = parseInt(e.date.split('-')[2]);
+                if (!dayMap[d] || e.intensity > dayMap[d].intensity) {
+                    dayMap[d] = e;
+                }
+            });
+
+            const container = document.createElement('div');
+            container.className = 'fade-in pb-10';
+            container.innerHTML = `
+                <div class="flex justify-between items-center mb-6">
+                    <button onclick="changeMonth(-1)" class="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                    </button>
+                    <h2 class="text-xl font-bold capitalize">${monthNames[month]} ${year}</h2>
+                    <button onclick="changeMonth(1)" class="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                    </button>
+                </div>
+
+                <!-- Días Semana -->
+                <div class="calendar-grid mb-2 text-center text-xs text-slate-400 font-bold">
+                    <div>L</div><div>M</div><div>X</div><div>J</div><div>V</div><div>S</div><div>D</div>
+                </div>
+                
+                <!-- Grid Días -->
+                <div class="calendar-grid" id="calendarGrid"></div>
+                
+                <div class="mt-8 p-4 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
+                    <h3 class="text-sm font-bold mb-2 text-slate-500 dark:text-slate-400">Resumen Mes</h3>
+                    <div class="flex items-center gap-4">
+                        <div class="flex-1">
+                            <span class="text-2xl font-bold text-indigo-500">${monthEntries.length}</span>
+                            <p class="text-xs text-slate-400">Días con dolor</p>
+                        </div>
+                        <div class="flex-1">
+                            <span class="text-2xl font-bold text-orange-500">
+                                ${monthEntries.length > 0 ? (monthEntries.reduce((a,b)=>a+b.intensity,0)/monthEntries.length).toFixed(1) : '-'}
+                            </span>
+                            <p class="text-xs text-slate-400">Intensidad Media</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Rellenar Grid
+            const grid = container.querySelector('#calendarGrid');
+            
+            // Celdas vacías iniciales
+            for(let i=0; i<startDay; i++) {
+                grid.innerHTML += `<div class="aspect-square"></div>`;
+            }
+
+            // Días
+            for(let d=1; d<=daysInMonth; d++) {
+                const entry = dayMap[d];
+                let bgClass = "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-indigo-400";
+                let textClass = "text-slate-700 dark:text-slate-300";
+                
+                if (entry) {
+                    // Colores por intensidad
+                    if(entry.intensity <= 3) bgClass = "bg-green-400 text-white border-green-500";
+                    else if(entry.intensity <= 6) bgClass = "bg-yellow-400 text-white border-yellow-500";
+                    else bgClass = "bg-red-500 text-white border-red-600";
+                    textClass = "text-white font-bold";
+                }
+
+                // Is today?
+                const today = new Date();
+                const isToday = today.getDate() === d && today.getMonth() === month && today.getFullYear() === year;
+                const todayRing = isToday ? 'ring-2 ring-indigo-500 z-10' : '';
+
+                // Date string for create
+                const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+
+                const cell = document.createElement('div');
+                cell.className = `aspect-square rounded-xl flex items-center justify-center text-sm cursor-pointer transition-transform hover:scale-105 ${bgClass} ${todayRing} ${textClass}`;
+                cell.innerText = d;
+                
+                if(entry) {
+                    cell.onclick = () => editEntry(entry.id);
+                } else {
+                    cell.onclick = () => createNewEntry(dateStr);
+                }
+
+                grid.appendChild(cell);
+            }
+
+            mainContent.appendChild(container);
+        }
+
+        window.changeMonth = (delta) => {
+            state.calendarMonth.setMonth(state.calendarMonth.getMonth() + delta);
+            renderCalendar();
+        };
 
         // --- VIEW: LIST ---
         function renderList() {
             const container = document.createElement('div');
             container.className = 'fade-in space-y-4';
-
-            // Header
-            const header = document.createElement('div');
-            header.className = 'flex justify-between items-center mb-6';
-            header.innerHTML = `
-                <h2 class="text-2xl font-bold">Historial</h2>
-                <button onclick="createNewEntry()" class="bg-indigo-600 text-white p-2 rounded-lg shadow-lg shadow-indigo-500/30 hover:bg-indigo-700">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                </button>
+            
+            container.innerHTML = `
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold">Historial</h2>
+                    <div class="text-sm text-slate-500">${state.entries.length} registros</div>
+                </div>
             `;
-            container.appendChild(header);
 
             if (state.entries.length === 0) {
                 container.innerHTML += `
                     <div class="text-center py-20 opacity-50">
-                        <svg class="w-16 h-16 mx-auto mb-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <svg class="w-16 h-16 mx-auto mb-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
                         <p>No hay registros aún.</p>
-                        <p class="text-sm">¡Esperemos que siga así!</p>
                     </div>
                 `;
             } else {
                 state.entries.forEach(entry => {
                     const zone = ZONES.find(z => z.id === entry.zone) || { label: entry.zone, color: 'bg-gray-500' };
-                    
                     let dateStr = "";
                     try {
-                        const rawDate = entry.date.split('T')[0];
-                        const [y, m, d] = rawDate.split('-');
+                        const [y, m, d] = entry.date.split('T')[0].split('-');
                         dateStr = `${d}/${m}/${y}`;
                     } catch (e) { dateStr = entry.date; }
                     
-                    // Preparar etiquetas extra
                     let extraTags = '';
-                    if(entry.triggers && entry.triggers.length > 0) {
-                        extraTags += `<div class="mt-2 flex flex-wrap gap-1">${entry.triggers.map(t => `<span class="text-[10px] px-1.5 py-0.5 rounded bg-orange-900/40 text-orange-200 border border-orange-800/50">${t}</span>`).join('')}</div>`;
-                    }
-                    if(entry.symptoms && entry.symptoms.length > 0) {
-                        extraTags += `<div class="mt-1 flex flex-wrap gap-1">${entry.symptoms.map(s => `<span class="text-[10px] px-1.5 py-0.5 rounded bg-purple-900/40 text-purple-200 border border-purple-800/50">${s}</span>`).join('')}</div>`;
-                    }
+                    if(entry.triggers?.length) extraTags += `<div class="mt-2 flex flex-wrap gap-1">${entry.triggers.map(t => `<span class="text-[10px] px-1.5 py-0.5 rounded bg-orange-100 dark:bg-orange-900/40 text-orange-600 dark:text-orange-200 border border-orange-200 dark:border-orange-800/50">${t}</span>`).join('')}</div>`;
+                    if(entry.symptoms?.length) extraTags += `<div class="mt-1 flex flex-wrap gap-1">${entry.symptoms.map(s => `<span class="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-200 border border-purple-200 dark:border-purple-800/50">${s}</span>`).join('')}</div>`;
 
                     const card = document.createElement('div');
-                    card.className = `p-4 rounded-2xl border bg-slate-800 border-slate-700 mb-4 shadow-sm transition-all hover:bg-slate-750`;
+                    card.className = `p-4 rounded-2xl border bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 mb-4 shadow-sm transition-all hover:shadow-md`;
                     card.innerHTML = `
-                        <!-- Contenido Principal (Click para editar) -->
                         <div class="cursor-pointer" onclick="editEntry(${entry.id})">
                             <div class="flex justify-between items-start mb-2">
                                 <div>
                                     <p class="text-xs text-slate-400 font-medium uppercase tracking-wider flex items-center gap-1">
                                         <span>📅 ${dateStr}</span>
                                     </p>
-                                    <h3 class="font-bold text-lg mt-1 text-white">${zone.label}</h3>
+                                    <h3 class="font-bold text-lg mt-1 dark:text-white">${zone.label}</h3>
                                 </div>
-                                <div class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-white text-sm ${INTENSITY_COLORS[entry.intensity] || 'bg-slate-500'}">
+                                <div class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-white text-sm ${INTENSITY_COLORS[entry.intensity]}">
                                     ${entry.intensity}
                                 </div>
                             </div>
                             
                             <div class="flex flex-wrap gap-2 text-sm mt-2">
-                                ${entry.duration ? `<span class="px-2 py-1 rounded-md flex items-center gap-1 bg-slate-700 text-slate-300">⏱ ${entry.duration} ${entry.durationUnit}</span>` : ''}
-                                ${entry.medication ? `<span class="px-2 py-1 rounded-md flex items-center gap-1 bg-indigo-900/50 text-indigo-300">💊 ${entry.medication}</span>` : ''}
+                                ${entry.duration ? `<span class="px-2 py-1 rounded-md flex items-center gap-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">⏱ ${entry.duration} ${entry.durationUnit}</span>` : ''}
+                                ${entry.medication ? `<span class="px-2 py-1 rounded-md flex items-center gap-1 bg-indigo-50 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-300">💊 ${entry.medication}</span>` : ''}
                             </div>
                             ${extraTags}
                         </div>
                         
-                        <!-- Botonera Acciones (Separada para evitar conflictos de color) -->
-                        <div class="flex justify-end gap-4 mt-4 pt-3 border-t border-slate-700/50">
-                             <button onclick="editEntry(${entry.id})" class="flex items-center gap-1 text-xs font-medium text-indigo-400 hover:text-indigo-300 transition-colors">
+                        <div class="flex justify-end gap-4 mt-4 pt-3 border-t border-slate-100 dark:border-slate-700/50">
+                             <button onclick="editEntry(${entry.id})" class="flex items-center gap-1 text-xs font-bold text-indigo-500 hover:text-indigo-600 transition-colors">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
                                 EDITAR
                             </button>
-                            <button onclick="deleteEntry(${entry.id})" class="flex items-center gap-1 text-xs font-medium text-red-400 hover:text-red-300 transition-colors">
+                            <button onclick="deleteEntry(${entry.id})" class="flex items-center gap-1 text-xs font-bold text-red-500 hover:text-red-600 transition-colors">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                                 BORRAR
                             </button>
@@ -269,24 +410,22 @@
             container.innerHTML = `
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-2xl font-bold">${isEditing ? 'Editar Registro' : 'Registrar Dolor'}</h2>
-                    <button onclick="router('list')" class="text-slate-500 hover:text-white">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    <button onclick="router('list')" class="text-slate-500 hover:text-slate-800 dark:hover:text-white">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                     </button>
                 </div>
 
                 <form id="addForm" class="space-y-6">
-                    <!-- FECHA -->
-                    <div class="p-4 rounded-2xl bg-slate-800">
+                    <div class="p-4 rounded-2xl bg-white dark:bg-slate-800 shadow-sm">
                         <label class="flex items-center gap-2 text-sm font-medium text-slate-400 mb-2">📅 Día del dolor</label>
-                        <input type="date" id="f_date" required class="w-full p-3 rounded-xl bg-slate-900 border border-slate-700 text-white focus:border-indigo-500 outline-none" value="${state.formData.date}">
+                        <input type="date" id="f_date" required class="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:border-indigo-500 outline-none" value="${state.formData.date}">
                     </div>
 
-                    <!-- ZONA -->
-                    <div class="p-4 rounded-2xl bg-slate-800">
+                    <div class="p-4 rounded-2xl bg-white dark:bg-slate-800 shadow-sm">
                         <label class="flex items-center gap-2 text-sm font-medium text-slate-400 mb-3">📍 ¿Dónde nace el dolor?</label>
                         <div class="grid grid-cols-2 gap-2" id="zoneGrid">
                             ${ZONES.map(z => `
-                                <button type="button" class="zone-btn p-3 rounded-xl text-sm font-semibold transition-all border-2 border-slate-700 text-slate-300 hover:bg-slate-700" 
+                                <button type="button" class="zone-btn p-3 rounded-xl text-sm font-semibold transition-all border-2 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700" 
                                     data-id="${z.id}" onclick="selectZone('${z.id}')">
                                     ${z.label}
                                 </button>
@@ -294,29 +433,27 @@
                         </div>
                     </div>
 
-                    <!-- INTENSIDAD -->
-                    <div class="p-4 rounded-2xl bg-slate-800">
+                    <div class="p-4 rounded-2xl bg-white dark:bg-slate-800 shadow-sm">
                         <div class="flex justify-between items-end mb-2">
                             <label class="flex items-center gap-2 text-sm font-medium text-slate-400">⚡ Intensidad</label>
-                            <span id="intensityVal" class="text-2xl font-bold px-3 py-1 rounded-lg text-white bg-orange-400">${state.formData.intensity}</span>
+                            <span id="intensityVal" class="text-2xl font-bold px-3 py-1 rounded-lg text-white ${INTENSITY_COLORS[state.formData.intensity]}">${state.formData.intensity}</span>
                         </div>
                         <input type="range" id="f_intensity" min="1" max="10" step="1" value="${state.formData.intensity}" 
-                            class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer"
+                            class="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer"
                             oninput="updateIntensity(this.value)">
-                        <div class="flex justify-between text-xs text-slate-500 mt-2">
-                            <span>Molestia</span>
-                            <span>Incapacitante</span>
+                        <div class="flex justify-between text-xs text-slate-400 mt-2">
+                            <span>Leve</span>
+                            <span>Insoportable</span>
                         </div>
                     </div>
                     
-                    <!-- DESENCADENANTES -->
-                    <div class="p-4 rounded-2xl bg-slate-800">
+                    <div class="p-4 rounded-2xl bg-white dark:bg-slate-800 shadow-sm">
                         <label class="flex items-center gap-2 text-sm font-medium text-slate-400 mb-3">❓ Posibles causas (Opcional)</label>
                         <div class="flex flex-wrap gap-2">
                             ${TRIGGERS.map(t => `
                                 <label class="cursor-pointer">
                                     <input type="checkbox" name="triggers" value="${t}" class="tag-checkbox hidden" ${state.formData.triggers.includes(t) ? 'checked' : ''}>
-                                    <div class="px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-300 text-sm transition-colors hover:bg-slate-700 select-none">
+                                    <div class="px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-sm transition-colors hover:bg-slate-100 dark:hover:bg-slate-700 select-none">
                                         ${t}
                                     </div>
                                 </label>
@@ -324,14 +461,13 @@
                         </div>
                     </div>
 
-                    <!-- SÍNTOMAS -->
-                    <div class="p-4 rounded-2xl bg-slate-800">
-                        <label class="flex items-center gap-2 text-sm font-medium text-slate-400 mb-3">👁️ Síntomas Acompañantes (Opcional)</label>
+                    <div class="p-4 rounded-2xl bg-white dark:bg-slate-800 shadow-sm">
+                        <label class="flex items-center gap-2 text-sm font-medium text-slate-400 mb-3">👁️ Síntomas (Opcional)</label>
                         <div class="flex flex-wrap gap-2">
                             ${SYMPTOMS.map(s => `
                                 <label class="cursor-pointer">
                                     <input type="checkbox" name="symptoms" value="${s}" class="tag-checkbox hidden" ${state.formData.symptoms.includes(s) ? 'checked' : ''}>
-                                    <div class="px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-300 text-sm transition-colors hover:bg-slate-700 select-none">
+                                    <div class="px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-sm transition-colors hover:bg-slate-100 dark:hover:bg-slate-700 select-none">
                                         ${s}
                                     </div>
                                 </label>
@@ -339,13 +475,12 @@
                         </div>
                     </div>
 
-                    <!-- EXTRAS -->
-                    <div class="p-4 rounded-2xl space-y-4 bg-slate-800">
+                    <div class="p-4 rounded-2xl space-y-4 bg-white dark:bg-slate-800 shadow-sm">
                         <div>
                             <label class="flex items-center gap-2 text-sm font-medium text-slate-400 mb-2">⏱ Duración (Opcional)</label>
                             <div class="flex gap-2">
-                                <input type="number" id="f_duration" placeholder="0" value="${state.formData.duration}" class="flex-1 p-3 rounded-xl bg-slate-900 border border-slate-700 text-white outline-none">
-                                <select id="f_durUnit" class="p-3 rounded-xl bg-slate-900 border border-slate-700 text-white outline-none">
+                                <input type="number" id="f_duration" placeholder="0" value="${state.formData.duration}" class="flex-1 p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white outline-none">
+                                <select id="f_durUnit" class="p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white outline-none">
                                     <option value="minutos" ${state.formData.durationUnit === 'minutos' ? 'selected' : ''}>Minutos</option>
                                     <option value="horas" ${state.formData.durationUnit === 'horas' ? 'selected' : ''}>Horas</option>
                                     <option value="días" ${state.formData.durationUnit === 'días' ? 'selected' : ''}>Días</option>
@@ -354,60 +489,54 @@
                         </div>
                         <div>
                             <label class="flex items-center gap-2 text-sm font-medium text-slate-400 mb-2">💊 Medicamento (Opcional)</label>
-                            <input type="text" id="f_meds" placeholder="Ej. Ibuprofeno" value="${state.formData.medication}" class="w-full p-3 rounded-xl bg-slate-900 border border-slate-700 text-white outline-none">
+                            <input type="text" id="f_meds" placeholder="Ej. Ibuprofeno" value="${state.formData.medication}" class="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white outline-none">
                         </div>
                     </div>
 
                     <button type="submit" class="w-full py-4 rounded-xl bg-indigo-600 text-white font-bold text-lg shadow-lg hover:bg-indigo-700 transition-all flex justify-center items-center gap-2">
                         ${isEditing ? '🔄 Actualizar Registro' : '💾 Guardar Registro'}
                     </button>
+                    <div class="h-8"></div>
                 </form>
             `;
             mainContent.appendChild(container);
             
-            // Marcar zona seleccionada visualmente
-            if(state.formData.zone) {
-                 selectZone(state.formData.zone);
-            }
+            if(state.formData.zone) selectZone(state.formData.zone);
             
-            // Event Listeners for Form
             document.getElementById('addForm').onsubmit = (e) => {
                 e.preventDefault();
                 saveEntry();
             };
         }
 
-        // --- VIEW: STATS (MODIFICADO PARA INFORME GRÁFICO) ---
+        // --- VIEW: STATS ---
         function renderStats() {
             mainContent.innerHTML = `
                 <div class="fade-in pb-10">
                     <div class="flex justify-between items-center mb-6 no-print">
                         <h2 class="text-2xl font-bold">Informe Mensual</h2>
                         <div class="flex gap-2">
-                            <button onclick="exportToCSV()" class="text-green-400 hover:text-green-300 p-2" title="Exportar CSV">
+                            <button onclick="exportToCSV()" class="text-green-500 hover:text-green-600 dark:text-green-400 dark:hover:text-green-300 p-2" title="Exportar CSV">
                                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                             </button>
-                            <button onclick="window.print()" class="text-indigo-400 hover:text-indigo-300 p-2" title="Imprimir">
+                            <button onclick="window.print()" class="text-indigo-500 hover:text-indigo-600 dark:text-indigo-400 dark:hover:text-indigo-300 p-2" title="Imprimir">
                                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
                             </button>
                         </div>
                     </div>
 
-                    <!-- SELECTOR DE MES -->
-                    <div class="bg-slate-800 p-4 rounded-2xl mb-6 shadow-sm no-print">
+                    <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl mb-6 shadow-sm no-print">
                         <label class="block text-sm text-slate-400 mb-2">Selecciona mes a consultar</label>
-                        <input type="month" id="monthSelector" class="w-full bg-slate-900 text-white p-2 rounded-lg border border-slate-700 outline-none focus:border-indigo-500" value="${state.statsMonth}">
+                        <input type="month" id="monthSelector" class="w-full bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white p-2 rounded-lg border border-slate-200 dark:border-slate-700 outline-none focus:border-indigo-500" value="${state.statsMonth}">
                     </div>
                     
-                    <!-- TITULO IMPRESIÓN -->
                     <div class="hidden print:block mb-4 text-black">
                         <h1 class="text-2xl font-bold">Informe de Cefaleas</h1>
                         <p>Periodo: ${state.statsMonth}</p>
                     </div>
 
-                    <!-- GRÁFICO DE FRECUENCIA -->
-                    <div class="bg-slate-800 p-4 rounded-2xl mb-6 shadow-sm print-break print:bg-white print:border print:text-black">
-                        <h3 class="font-bold mb-4 flex items-center gap-2 text-indigo-400 print:text-black">
+                    <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl mb-6 shadow-sm print-break print:bg-white print:border print:text-black">
+                        <h3 class="font-bold mb-4 flex items-center gap-2 text-indigo-500 dark:text-indigo-400 print:text-black">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
                             Intensidad por Día
                         </h3>
@@ -416,9 +545,8 @@
                         </div>
                     </div>
 
-                    <!-- GRÁFICO DE ZONAS -->
-                    <div class="bg-slate-800 p-4 rounded-2xl mb-6 shadow-sm print-break print:bg-white print:border print:text-black">
-                        <h3 class="font-bold mb-4 flex items-center gap-2 text-indigo-400 print:text-black">
+                    <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl mb-6 shadow-sm print-break print:bg-white print:border print:text-black">
+                        <h3 class="font-bold mb-4 flex items-center gap-2 text-indigo-500 dark:text-indigo-400 print:text-black">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"></path></svg>
                             Distribución de Zonas
                         </h3>
@@ -427,61 +555,56 @@
                         </div>
                     </div>
 
-                    <!-- RESUMEN TEXTO -->
                     <div class="grid grid-cols-2 gap-4 mb-6">
-                        <div class="p-4 rounded-2xl bg-slate-800 print:bg-white print:border print:text-black">
+                        <div class="p-4 rounded-2xl bg-white dark:bg-slate-800 print:bg-white print:border print:text-black">
                             <p class="text-sm text-slate-400 print:text-gray-600">Total Días con Dolor</p>
                             <p class="text-3xl font-bold text-indigo-500" id="statsTotal">0</p>
                         </div>
-                        <div class="p-4 rounded-2xl bg-slate-800 print:bg-white print:border print:text-black">
+                        <div class="p-4 rounded-2xl bg-white dark:bg-slate-800 print:bg-white print:border print:text-black">
                             <p class="text-sm text-slate-400 print:text-gray-600">Intensidad Media</p>
                             <p class="text-3xl font-bold text-orange-500" id="statsAvg">0</p>
                         </div>
                     </div>
-
                 </div>
             `;
 
-            // EVENT LISTENER PARA EL SELECTOR
             document.getElementById('monthSelector').addEventListener('change', (e) => {
                 state.statsMonth = e.target.value;
                 loadCharts();
             });
 
-            // CARGAR GRÁFICOS
             loadCharts();
         }
 
+        // [Mismas funciones loadCharts, selectZone, editEntry, updateIntensity, saveEntry, deleteEntry, exportToCSV]
+        // Se mantienen idénticas, solo asegúrate de que Chart.js usa colores visibles en Dark/Light mode si fuera necesario, 
+        // pero por ahora los colores son hardcoded y funcionan bien en ambos.
+        
         function loadCharts() {
             const [year, month] = state.statsMonth.split('-');
             const daysInMonth = new Date(year, month, 0).getDate();
             
-            // 1. FILTRAR DATOS
             const monthlyEntries = state.entries.filter(e => e.date.startsWith(state.statsMonth));
-
-            // 2. DATOS PARA BARRAS (DÍAS)
             const daysLabels = Array.from({length: daysInMonth}, (_, i) => i + 1);
             const intensityData = new Array(daysInMonth).fill(0);
             
             monthlyEntries.forEach(e => {
                 const day = parseInt(e.date.split('-')[2]);
-                if (e.intensity > intensityData[day - 1]) {
-                    intensityData[day - 1] = e.intensity;
-                }
+                if (e.intensity > intensityData[day - 1]) intensityData[day - 1] = e.intensity;
             });
 
-            // 3. DATOS PARA DONUT (ZONAS)
             const zoneCounts = {};
             monthlyEntries.forEach(e => zoneCounts[e.zone] = (zoneCounts[e.zone] || 0) + 1);
             
-            // 4. ACTUALIZAR ESTADÍSTICAS SIMPLES
             document.getElementById('statsTotal').innerText = monthlyEntries.length;
             const avg = monthlyEntries.length > 0 ? (monthlyEntries.reduce((a,b) => a + b.intensity, 0) / monthlyEntries.length).toFixed(1) : '0';
             document.getElementById('statsAvg').innerText = avg;
 
-            // CONFIGURAR CHART.JS
             if(frequencyChart) frequencyChart.destroy();
             if(zoneChart) zoneChart.destroy();
+
+            const isDark = state.darkMode;
+            const gridColor = isDark ? '#334155' : '#e2e8f0';
 
             const ctxFreq = document.getElementById('chartFrequency').getContext('2d');
             frequencyChart = new Chart(ctxFreq, {
@@ -489,13 +612,13 @@
                 data: {
                     labels: daysLabels,
                     datasets: [{
-                        label: 'Intensidad (1-10)',
+                        label: 'Intensidad',
                         data: intensityData,
                         backgroundColor: intensityData.map(v => {
                             if(v === 0) return 'rgba(0,0,0,0)';
-                            if(v < 4) return 'rgba(74, 222, 128, 0.7)'; // Green
-                            if(v < 7) return 'rgba(250, 204, 21, 0.7)'; // Yellow
-                            return 'rgba(248, 113, 113, 0.7)'; // Red
+                            if(v < 4) return 'rgba(74, 222, 128, 0.8)';
+                            if(v < 7) return 'rgba(250, 204, 21, 0.8)';
+                            return 'rgba(248, 113, 113, 0.8)';
                         }),
                         borderRadius: 4,
                     }]
@@ -504,8 +627,8 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     scales: {
-                        y: { beginAtZero: true, max: 10, ticks: { color: '#94a3b8' } },
-                        x: { ticks: { color: '#94a3b8', maxTicksLimit: 15 } }
+                        y: { beginAtZero: true, max: 10, grid: { color: gridColor }, ticks: { color: '#94a3b8' } },
+                        x: { grid: { display: false }, ticks: { color: '#94a3b8', maxTicksLimit: 15 } }
                     },
                     plugins: { legend: { display: false } }
                 }
@@ -519,9 +642,7 @@
                         labels: Object.keys(zoneCounts).map(id => ZONES.find(z => z.id === id)?.label || id),
                         datasets: [{
                             data: Object.values(zoneCounts),
-                            backgroundColor: [
-                                '#6366f1', '#a855f7', '#ec4899', '#f43f5e', '#f97316', '#eab308'
-                            ],
+                            backgroundColor: ['#6366f1', '#a855f7', '#ec4899', '#f43f5e', '#f97316', '#eab308'],
                             borderWidth: 0
                         }]
                     },
@@ -534,30 +655,25 @@
                     }
                 });
             } else {
-                const ctxZone = document.getElementById('chartZones').parentNode;
-                ctxZone.innerHTML = '<div class="h-48 flex items-center justify-center text-slate-500 italic">Sin datos este mes</div>';
+                document.getElementById('chartZones').parentNode.innerHTML = '<div class="h-48 flex items-center justify-center text-slate-500 italic">Sin datos este mes</div>';
             }
         }
 
-        // --- ACTIONS ---
         function selectZone(id) {
             state.formData.zone = id;
             document.querySelectorAll('.zone-btn').forEach(btn => {
                 if(btn.dataset.id === id) {
                     const color = ZONES.find(z => z.id === id).color;
-                    btn.className = `zone-btn p-3 rounded-xl text-sm font-bold transition-all transform scale-105 border-2 border-white shadow-lg text-white ${color}`;
+                    btn.className = `zone-btn p-3 rounded-xl text-sm font-bold transition-all transform scale-105 border-2 border-white dark:border-slate-600 shadow-lg text-white ${color}`;
                 } else {
-                    btn.className = `zone-btn p-3 rounded-xl text-sm font-semibold transition-all border-2 border-slate-700 text-slate-300 hover:bg-slate-700`;
+                    btn.className = `zone-btn p-3 rounded-xl text-sm font-semibold transition-all border-2 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700`;
                 }
             });
         }
         
-        // Función para cargar un registro en el formulario para editar
         function editEntry(id) {
             const entry = state.entries.find(e => e.id === id);
             if (!entry) return;
-            
-            // Cargar datos en el estado del formulario
             state.formData = {
                 date: entry.date,
                 zone: entry.zone,
@@ -568,7 +684,6 @@
                 triggers: entry.triggers || [],
                 symptoms: entry.symptoms || []
             };
-            
             state.editingId = id;
             router('form');
         }
@@ -585,13 +700,10 @@
                 alert("Por favor, selecciona una zona de dolor.");
                 return;
             }
-
-            // Capturar Checkboxes
             const triggers = Array.from(document.querySelectorAll('input[name="triggers"]:checked')).map(el => el.value);
             const symptoms = Array.from(document.querySelectorAll('input[name="symptoms"]:checked')).map(el => el.value);
 
             const entryData = {
-                // Si estamos editando usamos el ID existente, si no, uno nuevo
                 id: state.editingId || Date.now(),
                 date: document.getElementById('f_date').value,
                 zone: state.formData.zone,
@@ -604,30 +716,25 @@
             };
             
             if (state.editingId) {
-                // Actualizar registro existente
                 const index = state.entries.findIndex(e => e.id === state.editingId);
-                if (index !== -1) {
-                    state.entries[index] = entryData;
-                }
-                state.editingId = null; // Resetear modo edición
+                if (index !== -1) state.entries[index] = entryData;
+                state.editingId = null;
             } else {
-                // Crear nuevo registro
                 state.entries.unshift(entryData);
             }
             
             localStorage.setItem('headache_entries', JSON.stringify(state.entries));
             state.formData = resetFormData();
-            router('list');
+            // Go to Calendar after save for better feedback
+            router('calendar');
         }
 
         function deleteEntry(id) {
-            // Detenemos propagación para que no abra el editor al hacer click en borrar
             if(window.event) window.event.stopPropagation();
-            
             if(confirm("¿Eliminar registro?")) {
                 state.entries = state.entries.filter(e => e.id !== id);
                 localStorage.setItem('headache_entries', JSON.stringify(state.entries));
-                renderList();
+                render(); // Re-render current view
             }
         }
 
@@ -636,21 +743,16 @@
                 alert("No hay datos para exportar.");
                 return;
             }
-            
             let csvContent = "data:text/csv;charset=utf-8,";
             csvContent += "Fecha,Zona,Intensidad,Duracion,Unidad,Medicacion,Desencadenantes,Sintomas\n";
-            
             state.entries.forEach(e => {
                 const zoneLabel = ZONES.find(z => z.id === e.zone)?.label || e.zone;
-                // Escape simple para evitar romper el CSV con comas
                 const triggers = (e.triggers || []).join('; ');
                 const symptoms = (e.symptoms || []).join('; ');
                 const med = (e.medication || '').replace(/,/g, ' ');
-
                 const row = `${e.date},${zoneLabel},${e.intensity},${e.duration || ''},${e.durationUnit || ''},${med},"${triggers}","${symptoms}"`;
                 csvContent += row + "\n";
             });
-
             const encodedUri = encodeURI(csvContent);
             const link = document.createElement("a");
             link.setAttribute("href", encodedUri);
@@ -660,22 +762,7 @@
             document.body.removeChild(link);
         }
 
-        // --- THEME ---
-        function updateTheme() {
-            if(state.darkMode) {
-                body.classList.add('dark');
-                document.getElementById('iconSun').classList.remove('hidden');
-                document.getElementById('iconMoon').classList.add('hidden');
-            }
-        }
-
-        themeToggle.onclick = () => {
-            alert("Modo oscuro fijo activado para proteger tus ojos durante el dolor.");
-        };
-
-        // Start
         init();
-
     </script>
 </body>
 </html>
