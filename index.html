@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>NeuroDiario</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Agregamos Chart.js para los gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         /* Animaciones suaves */
         .fade-in { animation: fadeIn 0.3s ease-in-out; }
@@ -16,6 +18,15 @@
         /* Estilo para inputs range */
         input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 20px; width: 20px; border-radius: 50%; background: #6366f1; margin-top: -8px; box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
         input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #cbd5e1; border-radius: 2px; }
+        
+        /* Estilos de impresión */
+        @media print {
+            .no-print { display: none !important; }
+            body, #app { background: white !important; color: black !important; min-height: auto !important; height: auto !important; overflow: visible !important; }
+            #mainContent { padding: 0 !important; }
+            canvas { max-height: 300px !important; }
+            .print-break { break-inside: avoid; }
+        }
     </style>
 </head>
 <body class="bg-slate-900 text-slate-100 font-sans transition-colors duration-300 min-h-screen pb-24">
@@ -24,7 +35,7 @@
     <div id="app" class="max-w-md mx-auto relative min-h-screen bg-slate-900 shadow-2xl overflow-hidden">
         
         <!-- HEADER -->
-        <header class="p-4 flex justify-between items-center sticky top-0 z-20 bg-slate-900/95 backdrop-blur border-b border-slate-800">
+        <header class="p-4 flex justify-between items-center sticky top-0 z-20 bg-slate-900/95 backdrop-blur border-b border-slate-800 no-print">
             <div class="flex items-center gap-2">
                 <svg class="w-6 h-6 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                 <h1 class="text-xl font-bold tracking-tight">NeuroDiario</h1>
@@ -41,7 +52,7 @@
         <main id="mainContent" class="p-4"></main>
 
         <!-- BOTTOM NAV -->
-        <nav class="fixed bottom-0 w-full max-w-md bg-slate-900 border-t border-slate-800 flex justify-around p-1 z-30 safe-area-pb">
+        <nav class="fixed bottom-0 w-full max-w-md bg-slate-900 border-t border-slate-800 flex justify-around p-1 z-30 safe-area-pb no-print">
             <button onclick="router('list')" class="nav-btn flex-1 p-2 flex flex-col items-center text-slate-400 hover:text-indigo-400 transition" data-target="list">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 <span class="text-xs mt-1">Historial</span>
@@ -52,7 +63,7 @@
             </button>
             <button onclick="router('stats')" class="nav-btn flex-1 p-2 flex flex-col items-center text-slate-400 hover:text-indigo-400 transition" data-target="stats">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
-                <span class="text-xs mt-1">Resumen</span>
+                <span class="text-xs mt-1">Informe</span>
             </button>
         </nav>
     </div>
@@ -77,12 +88,17 @@
             9: 'bg-red-600', 10: 'bg-red-700'
         };
 
+        // VARIABLES GLOBALES PARA GRÁFICOS
+        let frequencyChart = null;
+        let zoneChart = null;
+
         // STATE
         let state = {
             entries: JSON.parse(localStorage.getItem('headache_entries')) || [],
             view: 'list', // list, form, stats
             darkMode: true,
-            formData: resetFormData()
+            formData: resetFormData(),
+            statsMonth: new Date().toISOString().slice(0, 7) // YYYY-MM actual
         };
 
         function resetFormData() {
@@ -130,6 +146,10 @@
 
             // Render Views
             mainContent.innerHTML = '';
+            // Limpiar gráficos anteriores si existen
+            if(frequencyChart) { frequencyChart.destroy(); frequencyChart = null; }
+            if(zoneChart) { zoneChart.destroy(); zoneChart = null; }
+
             if (state.view === 'list') renderList();
             else if (state.view === 'form') renderForm();
             else if (state.view === 'stats') renderStats();
@@ -163,15 +183,14 @@
                 state.entries.forEach(entry => {
                     const zone = ZONES.find(z => z.id === entry.zone) || { label: entry.zone, color: 'bg-gray-500' };
                     
-                    // Formato de fecha seguro (YYYY-MM-DD o ISO antiguo)
+                    // Formato de fecha seguro
                     let dateStr = "";
                     try {
-                        // Intentamos parsear manualmente para evitar cambios de zona horaria
-                        const rawDate = entry.date.split('T')[0]; // Toma la parte de la fecha
+                        const rawDate = entry.date.split('T')[0];
                         const [y, m, d] = rawDate.split('-');
                         dateStr = `${d}/${m}/${y}`;
                     } catch (e) {
-                        dateStr = entry.date; // Fallback
+                        dateStr = entry.date;
                     }
                     
                     const card = document.createElement('div');
@@ -283,65 +302,167 @@
             };
         }
 
-        // --- VIEW: STATS ---
+        // --- VIEW: STATS (MODIFICADO PARA INFORME GRÁFICO) ---
         function renderStats() {
-            const total = state.entries.length;
-            const avgIntensity = total > 0 ? (state.entries.reduce((a, b) => a + b.intensity, 0) / total).toFixed(1) : '-';
-            
-            // Calc zones
-            const zoneCounts = {};
-            state.entries.forEach(e => zoneCounts[e.zone] = (zoneCounts[e.zone] || 0) + 1);
-            const sortedZones = Object.entries(zoneCounts).sort((a,b) => b[1] - a[1]);
-
-            // Calc meds
-            const meds = [...new Set(state.entries.map(e => e.medication).filter(Boolean))];
-
             mainContent.innerHTML = `
-                <div class="fade-in">
-                    <h2 class="text-2xl font-bold mb-6">Resumen</h2>
+                <div class="fade-in pb-10">
+                    <div class="flex justify-between items-center mb-6 no-print">
+                        <h2 class="text-2xl font-bold">Informe Mensual</h2>
+                        <button onclick="window.print()" class="text-indigo-400 hover:text-indigo-300">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                        </button>
+                    </div>
+
+                    <!-- SELECTOR DE MES -->
+                    <div class="bg-slate-800 p-4 rounded-2xl mb-6 shadow-sm no-print">
+                        <label class="block text-sm text-slate-400 mb-2">Selecciona mes a consultar</label>
+                        <input type="month" id="monthSelector" class="w-full bg-slate-900 text-white p-2 rounded-lg border border-slate-700 outline-none focus:border-indigo-500" value="${state.statsMonth}">
+                    </div>
                     
+                    <!-- TITULO IMPRESIÓN -->
+                    <div class="hidden print:block mb-4 text-black">
+                        <h1 class="text-2xl font-bold">Informe de Cefaleas</h1>
+                        <p>Periodo: ${state.statsMonth}</p>
+                    </div>
+
+                    <!-- GRÁFICO DE FRECUENCIA -->
+                    <div class="bg-slate-800 p-4 rounded-2xl mb-6 shadow-sm print-break print:bg-white print:border print:text-black">
+                        <h3 class="font-bold mb-4 flex items-center gap-2 text-indigo-400 print:text-black">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                            Intensidad por Día
+                        </h3>
+                        <div class="h-64 relative">
+                            <canvas id="chartFrequency"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- GRÁFICO DE ZONAS -->
+                    <div class="bg-slate-800 p-4 rounded-2xl mb-6 shadow-sm print-break print:bg-white print:border print:text-black">
+                        <h3 class="font-bold mb-4 flex items-center gap-2 text-indigo-400 print:text-black">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"></path></svg>
+                            Distribución de Zonas
+                        </h3>
+                         <div class="h-48 relative flex justify-center">
+                            <canvas id="chartZones"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- RESUMEN TEXTO -->
                     <div class="grid grid-cols-2 gap-4 mb-6">
-                        <div class="p-4 rounded-2xl bg-slate-800">
-                            <p class="text-sm text-slate-400">Total Registros</p>
-                            <p class="text-3xl font-bold text-indigo-500">${total}</p>
+                        <div class="p-4 rounded-2xl bg-slate-800 print:bg-white print:border print:text-black">
+                            <p class="text-sm text-slate-400 print:text-gray-600">Total Días con Dolor</p>
+                            <p class="text-3xl font-bold text-indigo-500" id="statsTotal">0</p>
                         </div>
-                        <div class="p-4 rounded-2xl bg-slate-800">
-                            <p class="text-sm text-slate-400">Intensidad Media</p>
-                            <p class="text-3xl font-bold text-orange-500">${avgIntensity}</p>
-                        </div>
-                    </div>
-
-                    <div class="p-5 rounded-2xl mb-6 bg-slate-800">
-                        <h3 class="text-sm font-bold text-slate-400 mb-4 uppercase tracking-wider">Zonas más frecuentes</h3>
-                        <div class="space-y-3">
-                            ${sortedZones.length > 0 ? sortedZones.map(([zId, count]) => {
-                                const pct = Math.round((count/total)*100);
-                                const label = ZONES.find(z => z.id === zId)?.label || zId;
-                                return `
-                                    <div>
-                                        <div class="flex justify-between text-sm mb-1 text-slate-300">
-                                            <span>${label}</span>
-                                            <span class="text-slate-500">${count} (${pct}%)</span>
-                                        </div>
-                                        <div class="w-full h-2 bg-slate-700 rounded-full overflow-hidden">
-                                            <div class="h-full bg-indigo-500" style="width: ${pct}%"></div>
-                                        </div>
-                                    </div>
-                                `;
-                            }).join('') : '<p class="text-slate-500 italic">Sin datos suficientes</p>'}
+                        <div class="p-4 rounded-2xl bg-slate-800 print:bg-white print:border print:text-black">
+                            <p class="text-sm text-slate-400 print:text-gray-600">Intensidad Media</p>
+                            <p class="text-3xl font-bold text-orange-500" id="statsAvg">0</p>
                         </div>
                     </div>
 
-                    <div class="p-5 rounded-2xl bg-indigo-900/20 border border-indigo-500/20">
-                        <h3 class="font-bold mb-2 text-indigo-300">Medicamentos Usados</h3>
-                        <div class="flex flex-wrap gap-2">
-                            ${meds.length > 0 ? meds.map(m => `
-                                <span class="text-xs px-2 py-1 rounded-full bg-slate-700 text-slate-200 border border-slate-600">${m}</span>
-                            `).join('') : '<span class="text-sm text-slate-500">Ninguno registrado</span>'}
-                        </div>
-                    </div>
                 </div>
             `;
+
+            // EVENT LISTENER PARA EL SELECTOR
+            document.getElementById('monthSelector').addEventListener('change', (e) => {
+                state.statsMonth = e.target.value;
+                loadCharts();
+            });
+
+            // CARGAR GRÁFICOS
+            loadCharts();
+        }
+
+        function loadCharts() {
+            const [year, month] = state.statsMonth.split('-');
+            const daysInMonth = new Date(year, month, 0).getDate();
+            
+            // 1. FILTRAR DATOS
+            const monthlyEntries = state.entries.filter(e => e.date.startsWith(state.statsMonth));
+
+            // 2. DATOS PARA BARRAS (DÍAS)
+            // Creamos un array con todos los días del mes vacíos
+            const daysLabels = Array.from({length: daysInMonth}, (_, i) => i + 1);
+            const intensityData = new Array(daysInMonth).fill(0);
+            
+            monthlyEntries.forEach(e => {
+                const day = parseInt(e.date.split('-')[2]);
+                // Si hay varios registros en un día, nos quedamos con la intensidad máxima
+                if (e.intensity > intensityData[day - 1]) {
+                    intensityData[day - 1] = e.intensity;
+                }
+            });
+
+            // 3. DATOS PARA DONUT (ZONAS)
+            const zoneCounts = {};
+            monthlyEntries.forEach(e => zoneCounts[e.zone] = (zoneCounts[e.zone] || 0) + 1);
+            
+            // 4. ACTUALIZAR ESTADÍSTICAS SIMPLES
+            document.getElementById('statsTotal').innerText = monthlyEntries.length;
+            const avg = monthlyEntries.length > 0 ? (monthlyEntries.reduce((a,b) => a + b.intensity, 0) / monthlyEntries.length).toFixed(1) : '0';
+            document.getElementById('statsAvg').innerText = avg;
+
+            // CONFIGURAR CHART.JS
+            // Destruir anteriores si es refresco
+            if(frequencyChart) frequencyChart.destroy();
+            if(zoneChart) zoneChart.destroy();
+
+            // GRÁFICO BARRAS
+            const ctxFreq = document.getElementById('chartFrequency').getContext('2d');
+            frequencyChart = new Chart(ctxFreq, {
+                type: 'bar',
+                data: {
+                    labels: daysLabels,
+                    datasets: [{
+                        label: 'Intensidad (1-10)',
+                        data: intensityData,
+                        backgroundColor: intensityData.map(v => {
+                            if(v === 0) return 'rgba(0,0,0,0)';
+                            if(v < 4) return 'rgba(74, 222, 128, 0.7)'; // Green
+                            if(v < 7) return 'rgba(250, 204, 21, 0.7)'; // Yellow
+                            return 'rgba(248, 113, 113, 0.7)'; // Red
+                        }),
+                        borderRadius: 4,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, max: 10, ticks: { color: '#94a3b8' } },
+                        x: { ticks: { color: '#94a3b8', maxTicksLimit: 15 } }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+
+            // GRÁFICO DONUT
+            if (Object.keys(zoneCounts).length > 0) {
+                const ctxZone = document.getElementById('chartZones').getContext('2d');
+                zoneChart = new Chart(ctxZone, {
+                    type: 'doughnut',
+                    data: {
+                        labels: Object.keys(zoneCounts).map(id => ZONES.find(z => z.id === id)?.label || id),
+                        datasets: [{
+                            data: Object.values(zoneCounts),
+                            backgroundColor: [
+                                '#6366f1', '#a855f7', '#ec4899', '#f43f5e', '#f97316', '#eab308'
+                            ],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'right', labels: { color: '#94a3b8', boxWidth: 10 } }
+                        }
+                    }
+                });
+            } else {
+                // Mensaje si no hay datos
+                const ctxZone = document.getElementById('chartZones').parentNode;
+                ctxZone.innerHTML = '<div class="h-48 flex items-center justify-center text-slate-500 italic">Sin datos este mes</div>';
+            }
         }
 
         // --- ACTIONS ---
