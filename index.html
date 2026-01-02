@@ -64,7 +64,7 @@
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 <span class="text-xs mt-1">Historial</span>
             </button>
-            <button onclick="router('form')" class="nav-btn flex-1 p-2 flex flex-col items-center text-slate-400 hover:text-indigo-400 transition" data-target="form">
+            <button onclick="createNewEntry()" class="nav-btn flex-1 p-2 flex flex-col items-center text-slate-400 hover:text-indigo-400 transition" data-target="form">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 <span class="text-xs mt-1">Registrar</span>
             </button>
@@ -108,6 +108,7 @@
             view: 'list', // list, form, stats
             darkMode: true,
             formData: resetFormData(),
+            editingId: null, // Nuevo estado para saber si estamos editando
             statsMonth: new Date().toISOString().slice(0, 7) // YYYY-MM actual
         };
 
@@ -140,6 +141,14 @@
         function router(viewName) {
             state.view = viewName;
             render();
+        }
+        
+        // Función específica para el botón de la barra de navegación "Registrar"
+        // para asegurarse de que limpia el estado de edición
+        function createNewEntry() {
+            state.editingId = null;
+            state.formData = resetFormData();
+            router('form');
         }
 
         function render() {
@@ -175,7 +184,7 @@
             header.className = 'flex justify-between items-center mb-6';
             header.innerHTML = `
                 <h2 class="text-2xl font-bold">Historial</h2>
-                <button onclick="router('form')" class="bg-indigo-600 text-white p-2 rounded-lg shadow-lg shadow-indigo-500/30 hover:bg-indigo-700">
+                <button onclick="createNewEntry()" class="bg-indigo-600 text-white p-2 rounded-lg shadow-lg shadow-indigo-500/30 hover:bg-indigo-700">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                 </button>
             `;
@@ -212,7 +221,7 @@
                     const card = document.createElement('div');
                     card.className = `p-4 rounded-2xl border relative group transition-all bg-slate-800 border-slate-700 mb-4 hover:bg-slate-750`;
                     card.innerHTML = `
-                        <div class="flex justify-between items-start mb-2">
+                        <div class="flex justify-between items-start mb-2 cursor-pointer" onclick="editEntry(${entry.id})">
                             <div>
                                 <p class="text-xs text-slate-400 font-medium uppercase tracking-wider flex items-center gap-1">
                                     <span>📅 ${dateStr}</span>
@@ -223,14 +232,21 @@
                                 ${entry.intensity}
                             </div>
                         </div>
-                        <div class="flex flex-wrap gap-2 text-sm mt-2">
+                        <div class="flex flex-wrap gap-2 text-sm mt-2" onclick="editEntry(${entry.id})">
                             ${entry.duration ? `<span class="px-2 py-1 rounded-md flex items-center gap-1 bg-slate-700 text-slate-300">⏱ ${entry.duration} ${entry.durationUnit}</span>` : ''}
                             ${entry.medication ? `<span class="px-2 py-1 rounded-md flex items-center gap-1 bg-indigo-900/50 text-indigo-300">💊 ${entry.medication}</span>` : ''}
                         </div>
                         ${extraTags}
-                        <button onclick="deleteEntry(${entry.id})" class="absolute top-4 right-4 text-slate-500 hover:text-red-500 p-2">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                        </button>
+                        
+                        <!-- Acciones -->
+                        <div class="absolute top-4 right-4 flex gap-2">
+                             <button onclick="editEntry(${entry.id})" class="text-slate-500 hover:text-indigo-400 p-1" title="Editar">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                            </button>
+                            <button onclick="deleteEntry(${entry.id})" class="text-slate-500 hover:text-red-500 p-1" title="Borrar">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            </button>
+                        </div>
                     `;
                     container.appendChild(card);
                 });
@@ -242,10 +258,11 @@
         function renderForm() {
             const container = document.createElement('div');
             container.className = 'slide-up pb-10';
+            const isEditing = state.editingId !== null;
             
             container.innerHTML = `
                 <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold">Registrar Dolor</h2>
+                    <h2 class="text-2xl font-bold">${isEditing ? 'Editar Registro' : 'Registrar Dolor'}</h2>
                     <button onclick="router('list')" class="text-slate-500 hover:text-white">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                     </button>
@@ -275,9 +292,9 @@
                     <div class="p-4 rounded-2xl bg-slate-800">
                         <div class="flex justify-between items-end mb-2">
                             <label class="flex items-center gap-2 text-sm font-medium text-slate-400">⚡ Intensidad</label>
-                            <span id="intensityVal" class="text-2xl font-bold px-3 py-1 rounded-lg text-white bg-orange-400">5</span>
+                            <span id="intensityVal" class="text-2xl font-bold px-3 py-1 rounded-lg text-white bg-orange-400">${state.formData.intensity}</span>
                         </div>
-                        <input type="range" id="f_intensity" min="1" max="10" step="1" value="5" 
+                        <input type="range" id="f_intensity" min="1" max="10" step="1" value="${state.formData.intensity}" 
                             class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer"
                             oninput="updateIntensity(this.value)">
                         <div class="flex justify-between text-xs text-slate-500 mt-2">
@@ -288,11 +305,11 @@
                     
                     <!-- DESENCADENANTES -->
                     <div class="p-4 rounded-2xl bg-slate-800">
-                        <label class="flex items-center gap-2 text-sm font-medium text-slate-400 mb-3">❓ Posibles causas (Desencadenantes)</label>
+                        <label class="flex items-center gap-2 text-sm font-medium text-slate-400 mb-3">❓ Posibles causas (Opcional)</label>
                         <div class="flex flex-wrap gap-2">
                             ${TRIGGERS.map(t => `
                                 <label class="cursor-pointer">
-                                    <input type="checkbox" name="triggers" value="${t}" class="tag-checkbox hidden">
+                                    <input type="checkbox" name="triggers" value="${t}" class="tag-checkbox hidden" ${state.formData.triggers.includes(t) ? 'checked' : ''}>
                                     <div class="px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-300 text-sm transition-colors hover:bg-slate-700 select-none">
                                         ${t}
                                     </div>
@@ -303,11 +320,11 @@
 
                     <!-- SÍNTOMAS -->
                     <div class="p-4 rounded-2xl bg-slate-800">
-                        <label class="flex items-center gap-2 text-sm font-medium text-slate-400 mb-3">👁️ Síntomas Acompañantes</label>
+                        <label class="flex items-center gap-2 text-sm font-medium text-slate-400 mb-3">👁️ Síntomas Acompañantes (Opcional)</label>
                         <div class="flex flex-wrap gap-2">
                             ${SYMPTOMS.map(s => `
                                 <label class="cursor-pointer">
-                                    <input type="checkbox" name="symptoms" value="${s}" class="tag-checkbox hidden">
+                                    <input type="checkbox" name="symptoms" value="${s}" class="tag-checkbox hidden" ${state.formData.symptoms.includes(s) ? 'checked' : ''}>
                                     <div class="px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-300 text-sm transition-colors hover:bg-slate-700 select-none">
                                         ${s}
                                     </div>
@@ -319,28 +336,33 @@
                     <!-- EXTRAS -->
                     <div class="p-4 rounded-2xl space-y-4 bg-slate-800">
                         <div>
-                            <label class="flex items-center gap-2 text-sm font-medium text-slate-400 mb-2">⏱ Duración</label>
+                            <label class="flex items-center gap-2 text-sm font-medium text-slate-400 mb-2">⏱ Duración (Opcional)</label>
                             <div class="flex gap-2">
-                                <input type="number" id="f_duration" placeholder="0" class="flex-1 p-3 rounded-xl bg-slate-900 border border-slate-700 text-white outline-none">
+                                <input type="number" id="f_duration" placeholder="0" value="${state.formData.duration}" class="flex-1 p-3 rounded-xl bg-slate-900 border border-slate-700 text-white outline-none">
                                 <select id="f_durUnit" class="p-3 rounded-xl bg-slate-900 border border-slate-700 text-white outline-none">
-                                    <option value="minutos">Minutos</option>
-                                    <option value="horas" selected>Horas</option>
-                                    <option value="días">Días</option>
+                                    <option value="minutos" ${state.formData.durationUnit === 'minutos' ? 'selected' : ''}>Minutos</option>
+                                    <option value="horas" ${state.formData.durationUnit === 'horas' ? 'selected' : ''}>Horas</option>
+                                    <option value="días" ${state.formData.durationUnit === 'días' ? 'selected' : ''}>Días</option>
                                 </select>
                             </div>
                         </div>
                         <div>
-                            <label class="flex items-center gap-2 text-sm font-medium text-slate-400 mb-2">💊 Medicamento</label>
-                            <input type="text" id="f_meds" placeholder="Ej. Ibuprofeno" class="w-full p-3 rounded-xl bg-slate-900 border border-slate-700 text-white outline-none">
+                            <label class="flex items-center gap-2 text-sm font-medium text-slate-400 mb-2">💊 Medicamento (Opcional)</label>
+                            <input type="text" id="f_meds" placeholder="Ej. Ibuprofeno" value="${state.formData.medication}" class="w-full p-3 rounded-xl bg-slate-900 border border-slate-700 text-white outline-none">
                         </div>
                     </div>
 
                     <button type="submit" class="w-full py-4 rounded-xl bg-indigo-600 text-white font-bold text-lg shadow-lg hover:bg-indigo-700 transition-all flex justify-center items-center gap-2">
-                        💾 Guardar Registro
+                        ${isEditing ? '🔄 Actualizar Registro' : '💾 Guardar Registro'}
                     </button>
                 </form>
             `;
             mainContent.appendChild(container);
+            
+            // Marcar zona seleccionada visualmente
+            if(state.formData.zone) {
+                 selectZone(state.formData.zone);
+            }
             
             // Event Listeners for Form
             document.getElementById('addForm').onsubmit = (e) => {
@@ -523,6 +545,27 @@
                 }
             });
         }
+        
+        // Función para cargar un registro en el formulario para editar
+        function editEntry(id) {
+            const entry = state.entries.find(e => e.id === id);
+            if (!entry) return;
+            
+            // Cargar datos en el estado del formulario
+            state.formData = {
+                date: entry.date,
+                zone: entry.zone,
+                intensity: entry.intensity,
+                duration: entry.duration || '',
+                durationUnit: entry.durationUnit || 'horas',
+                medication: entry.medication || '',
+                triggers: entry.triggers || [],
+                symptoms: entry.symptoms || []
+            };
+            
+            state.editingId = id;
+            router('form');
+        }
 
         function updateIntensity(val) {
             state.formData.intensity = parseInt(val);
@@ -541,8 +584,9 @@
             const triggers = Array.from(document.querySelectorAll('input[name="triggers"]:checked')).map(el => el.value);
             const symptoms = Array.from(document.querySelectorAll('input[name="symptoms"]:checked')).map(el => el.value);
 
-            const newEntry = {
-                id: Date.now(),
+            const entryData = {
+                // Si estamos editando usamos el ID existente, si no, uno nuevo
+                id: state.editingId || Date.now(),
                 date: document.getElementById('f_date').value,
                 zone: state.formData.zone,
                 intensity: state.formData.intensity,
@@ -553,13 +597,27 @@
                 symptoms: symptoms
             };
             
-            state.entries.unshift(newEntry);
+            if (state.editingId) {
+                // Actualizar registro existente
+                const index = state.entries.findIndex(e => e.id === state.editingId);
+                if (index !== -1) {
+                    state.entries[index] = entryData;
+                }
+                state.editingId = null; // Resetear modo edición
+            } else {
+                // Crear nuevo registro
+                state.entries.unshift(entryData);
+            }
+            
             localStorage.setItem('headache_entries', JSON.stringify(state.entries));
             state.formData = resetFormData();
             router('list');
         }
 
         function deleteEntry(id) {
+            // Detenemos propagación para que no abra el editor al hacer click en borrar
+            if(window.event) window.event.stopPropagation();
+            
             if(confirm("¿Eliminar registro?")) {
                 state.entries = state.entries.filter(e => e.id !== id);
                 localStorage.setItem('headache_entries', JSON.stringify(state.entries));
