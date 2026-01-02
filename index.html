@@ -4,6 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>NeuroDiario</title>
+    
+    <!-- Configuración PWA y Mobile -->
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="NeuroDiario">
+    
+    <!-- Icono para PWA (Cerebro) -->
+    <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/3063/3063176.png">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3063/3063176.png">
+
+    <!-- Manifiesto Web App incrustado (Data URI para que funcione en un solo archivo) -->
+    <link rel="manifest" href='data:application/manifest+json,{"name":"NeuroDiario","short_name":"NeuroDiario","start_url":".","display":"standalone","background_color":"#0f172a","theme_color":"#0f172a","icons":[{"src":"https://cdn-icons-png.flaticon.com/512/3063/3063176.png","sizes":"512x512","type":"image/png"}]}'>
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
@@ -58,7 +72,7 @@
         <header class="p-4 flex justify-between items-center sticky top-0 z-20 bg-white/90 dark:bg-slate-900/95 backdrop-blur border-b border-slate-200 dark:border-slate-800 no-print transition-colors">
             <div class="flex items-center gap-2">
                 <svg class="w-6 h-6 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                <h1 class="text-xl font-bold tracking-tight">NeuroDiario</h1>
+                <h1 class="text-xl font-bold tracking-tight text-slate-900 dark:text-white">NeuroDiario</h1>
             </div>
             <button id="themeToggle" class="p-2 rounded-full bg-slate-200 dark:bg-slate-800 text-indigo-500 dark:text-yellow-300 hover:bg-slate-300 dark:hover:bg-slate-700 transition">
                 <!-- Sun Icon -->
@@ -157,6 +171,17 @@
             const savedTheme = localStorage.getItem('theme');
             if(savedTheme) {
                 state.darkMode = savedTheme === 'dark';
+            }
+            // Registro básico de Service Worker para PWA (necesario para "Instalar app")
+            if ('serviceWorker' in navigator) {
+                const swContent = `
+                    self.addEventListener('install', (e) => e.waitUntil(self.skipWaiting()));
+                    self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
+                    self.addEventListener('fetch', (e) => {});
+                `;
+                const blob = new Blob([swContent], {type: 'text/javascript'});
+                const swUrl = URL.createObjectURL(blob);
+                navigator.serviceWorker.register(swUrl).catch(() => {});
             }
             updateTheme();
             render();
