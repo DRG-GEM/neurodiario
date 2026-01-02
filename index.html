@@ -12,42 +12,54 @@
     <meta name="apple-mobile-web-app-title" content="NeuroDiario">
     
     <!-- ICONO PERSONALIZADO -->
-    <!-- Usamos tu enlace exacto con un parámetro v=3 para romper la caché -->
-    <link rel="icon" type="image/png" href="https://github.com/DRG-GEM/neurodiario/blob/main/Neurodiario.png?raw=true">
-    <link rel="apple-touch-icon" href="https://github.com/DRG-GEM/neurodiario/blob/main/Neurodiario.png?raw=true">
+    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/DRG-GEM/neurodiario/main/Neurodiario.png">
+    <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/DRG-GEM/neurodiario/main/Neurodiario.png">
 
-    <!-- Manifiesto Web App -->
-    <!-- Definimos dos tamaños apuntando a la misma imagen para asegurar compatibilidad con Android -->
-    <link rel="manifest" href='data:application/manifest+json,{"name":"NeuroDiario","short_name":"NeuroDiario","start_url":".","display":"standalone","background_color":"#0f172a","theme_color":"#0f172a","icons":[{"src":"https://github.com/DRG-GEM/neurodiario/blob/main/Neurodiario.png?raw=true","sizes":"192x192","type":"image/png"},{"src":"https://github.com/DRG-GEM/neurodiario/blob/main/Neurodiario.png?raw=true","sizes":"512x512","type":"image/png"}]}'>
+    <!-- Manifiesto Web App (Codificado para asegurar compatibilidad PWA) -->
+    <link rel="manifest" id="manifest-placeholder">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
+        // Inyectar Manifiesto dinámicamente para asegurar URLs absolutas y formato correcto
+        const iconUrl = "https://raw.githubusercontent.com/DRG-GEM/neurodiario/main/Neurodiario.png";
+        const manifest = {
+            name: "NeuroDiario",
+            short_name: "NeuroDiario",
+            start_url: window.location.href, // Asegura que se abra en la URL actual
+            display: "standalone",
+            background_color: "#0f172a",
+            theme_color: "#0f172a",
+            orientation: "portrait",
+            icons: [
+                { src: iconUrl, sizes: "192x192", type: "image/png" },
+                { src: iconUrl, sizes: "512x512", type: "image/png" }
+            ]
+        };
+        const stringManifest = JSON.stringify(manifest);
+        const blob = new Blob([stringManifest], {type: 'application/json'});
+        const manifestURL = URL.createObjectURL(blob);
+        document.getElementById('manifest-placeholder').setAttribute('href', manifestURL);
+
         tailwind.config = {
             darkMode: 'class',
             theme: {
                 extend: {
                     colors: {
-                        slate: { 750: '#2d3748' } // Color custom para tarjetas hover
+                        slate: { 750: '#2d3748' }
                     }
                 }
             }
         }
     </script>
     <style>
-        /* Animaciones */
         .fade-in { animation: fadeIn 0.3s ease-in-out; }
         .slide-up { animation: slideUp 0.3s ease-out; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        
         body { overscroll-behavior-y: none; }
-        
-        /* Inputs Range */
         input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 20px; width: 20px; border-radius: 50%; background: #6366f1; margin-top: -8px; box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
         input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #cbd5e1; border-radius: 2px; }
-        
-        /* Print */
         @media print {
             .no-print { display: none !important; }
             body, #app { background: white !important; color: black !important; height: auto !important; overflow: visible !important; }
@@ -55,13 +67,7 @@
             canvas { max-height: 300px !important; }
             .print-break { break-inside: avoid; }
         }
-        
-        /* Checkbox oculto */
-        .tag-checkbox:checked + div {
-            background-color: #4f46e5; color: white; border-color: #4f46e5;
-        }
-        
-        /* Grid Calendario */
+        .tag-checkbox:checked + div { background-color: #4f46e5; color: white; border-color: #4f46e5; }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
     </style>
 </head>
@@ -73,16 +79,21 @@
         <!-- HEADER -->
         <header class="p-4 flex justify-between items-center sticky top-0 z-20 bg-white/90 dark:bg-slate-900/95 backdrop-blur border-b border-slate-200 dark:border-slate-800 no-print transition-colors">
             <div class="flex items-center gap-2">
-                <!-- Usamos tu logo aquí también pero pequeño -->
-                <img src="https://github.com/DRG-GEM/neurodiario/blob/main/Neurodiario.png?raw=true" class="w-8 h-8 rounded-full object-cover" alt="Logo">
+                <img src="https://raw.githubusercontent.com/DRG-GEM/neurodiario/main/Neurodiario.png" class="w-8 h-8 rounded-full object-cover shadow-sm" alt="Logo">
                 <h1 class="text-xl font-bold tracking-tight text-slate-900 dark:text-white">NeuroDiario</h1>
             </div>
-            <button id="themeToggle" class="p-2 rounded-full bg-slate-200 dark:bg-slate-800 text-indigo-500 dark:text-yellow-300 hover:bg-slate-300 dark:hover:bg-slate-700 transition">
-                <!-- Sun Icon -->
-                <svg id="iconSun" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-                <!-- Moon Icon -->
-                <svg id="iconMoon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
-            </button>
+            
+            <div class="flex items-center gap-2">
+                <!-- Botón Instalar PWA (Oculto por defecto) -->
+                <button id="installBtn" class="hidden px-3 py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-full shadow-lg hover:bg-indigo-700 transition-all animate-pulse">
+                    INSTALAR APP
+                </button>
+
+                <button id="themeToggle" class="p-2 rounded-full bg-slate-200 dark:bg-slate-800 text-indigo-500 dark:text-yellow-300 hover:bg-slate-300 dark:hover:bg-slate-700 transition">
+                    <svg id="iconSun" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                    <svg id="iconMoon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                </button>
+            </div>
         </header>
 
         <!-- MAIN CONTENT AREA -->
@@ -137,16 +148,17 @@
         // STATE
         let state = {
             entries: JSON.parse(localStorage.getItem('headache_entries')) || [],
-            view: 'calendar', // Default view changed to calendar
-            darkMode: true, // Default preference
+            view: 'calendar',
+            darkMode: true,
             formData: resetFormData(),
             editingId: null,
-            calendarMonth: new Date(), // Object Date
+            calendarMonth: new Date(),
             statsMonth: new Date().toISOString().slice(0, 7)
         };
 
         let frequencyChart = null;
         let zoneChart = null;
+        let deferredPrompt; // Para el evento de instalación
 
         function resetFormData() {
             return {
@@ -167,25 +179,50 @@
         const body = document.body;
         const iconSun = document.getElementById('iconSun');
         const iconMoon = document.getElementById('iconMoon');
+        const installBtn = document.getElementById('installBtn');
 
         // INIT
         function init() {
-            // Load theme preference if exists
+            // Load theme
             const savedTheme = localStorage.getItem('theme');
-            if(savedTheme) {
-                state.darkMode = savedTheme === 'dark';
-            }
-            // Registro básico de Service Worker para PWA (necesario para "Instalar app")
+            if(savedTheme) state.darkMode = savedTheme === 'dark';
+            
+            // PWA SERVICE WORKER (Requisito para "Instalar")
             if ('serviceWorker' in navigator) {
                 const swContent = `
                     self.addEventListener('install', (e) => e.waitUntil(self.skipWaiting()));
                     self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
-                    self.addEventListener('fetch', (e) => {});
+                    self.addEventListener('fetch', (e) => {
+                        // Estrategia básica de caché o network-first podría ir aquí
+                    });
                 `;
                 const blob = new Blob([swContent], {type: 'text/javascript'});
                 const swUrl = URL.createObjectURL(blob);
-                navigator.serviceWorker.register(swUrl).catch(() => {});
+                navigator.serviceWorker.register(swUrl)
+                    .then(() => console.log('SW registrado'))
+                    .catch(console.error);
             }
+
+            // PWA INSTALL LOGIC
+            window.addEventListener('beforeinstallprompt', (e) => {
+                // Prevenir que Chrome muestre el prompt automáticamente (opcional)
+                e.preventDefault();
+                // Guardar el evento para dispararlo luego
+                deferredPrompt = e;
+                // Mostrar el botón de instalar
+                installBtn.classList.remove('hidden');
+            });
+
+            installBtn.addEventListener('click', async () => {
+                if (deferredPrompt) {
+                    deferredPrompt.prompt();
+                    const { outcome } = await deferredPrompt.userChoice;
+                    console.log(`User response to the install prompt: ${outcome}`);
+                    deferredPrompt = null;
+                    installBtn.classList.add('hidden');
+                }
+            });
+
             updateTheme();
             render();
         }
@@ -221,7 +258,6 @@
         }
 
         function render() {
-            // Update Nav Active State
             document.querySelectorAll('.nav-btn').forEach(btn => {
                 const isActive = btn.dataset.target === state.view;
                 if(isActive && btn.dataset.target !== 'form') {
@@ -252,14 +288,11 @@
             const firstDay = new Date(year, month, 1);
             const lastDay = new Date(year, month + 1, 0);
             const daysInMonth = lastDay.getDate();
-            // Ajustar para que Lunes sea 0 (getDay(): 0 Dom, 1 Lun...) -> (day + 6) % 7
             let startDay = (firstDay.getDay() + 6) % 7; 
 
-            // Datos del mes
             const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
             const monthEntries = state.entries.filter(e => e.date.startsWith(monthKey));
             
-            // Mapeo día -> intensidad máxima
             const dayMap = {};
             monthEntries.forEach(e => {
                 const d = parseInt(e.date.split('-')[2]);
@@ -281,12 +314,9 @@
                     </button>
                 </div>
 
-                <!-- Días Semana -->
                 <div class="calendar-grid mb-2 text-center text-xs text-slate-400 font-bold">
                     <div>L</div><div>M</div><div>X</div><div>J</div><div>V</div><div>S</div><div>D</div>
                 </div>
-                
-                <!-- Grid Días -->
                 <div class="calendar-grid" id="calendarGrid"></div>
                 
                 <div class="mt-8 p-4 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
@@ -306,49 +336,37 @@
                 </div>
             `;
 
-            // Rellenar Grid
             const grid = container.querySelector('#calendarGrid');
-            
-            // Celdas vacías iniciales
             for(let i=0; i<startDay; i++) {
                 grid.innerHTML += `<div class="aspect-square"></div>`;
             }
 
-            // Días
             for(let d=1; d<=daysInMonth; d++) {
                 const entry = dayMap[d];
                 let bgClass = "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-indigo-400";
                 let textClass = "text-slate-700 dark:text-slate-300";
                 
                 if (entry) {
-                    // Colores por intensidad
                     if(entry.intensity <= 3) bgClass = "bg-green-400 text-white border-green-500";
                     else if(entry.intensity <= 6) bgClass = "bg-yellow-400 text-white border-yellow-500";
                     else bgClass = "bg-red-500 text-white border-red-600";
                     textClass = "text-white font-bold";
                 }
 
-                // Is today?
                 const today = new Date();
                 const isToday = today.getDate() === d && today.getMonth() === month && today.getFullYear() === year;
                 const todayRing = isToday ? 'ring-2 ring-indigo-500 z-10' : '';
-
-                // Date string for create
                 const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
 
                 const cell = document.createElement('div');
                 cell.className = `aspect-square rounded-xl flex items-center justify-center text-sm cursor-pointer transition-transform hover:scale-105 ${bgClass} ${todayRing} ${textClass}`;
                 cell.innerText = d;
                 
-                if(entry) {
-                    cell.onclick = () => editEntry(entry.id);
-                } else {
-                    cell.onclick = () => createNewEntry(dateStr);
-                }
+                if(entry) cell.onclick = () => editEntry(entry.id);
+                else cell.onclick = () => createNewEntry(dateStr);
 
                 grid.appendChild(cell);
             }
-
             mainContent.appendChild(container);
         }
 
@@ -361,7 +379,6 @@
         function renderList() {
             const container = document.createElement('div');
             container.className = 'fade-in space-y-4';
-            
             container.innerHTML = `
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-2xl font-bold">Historial</h2>
@@ -372,7 +389,7 @@
             if (state.entries.length === 0) {
                 container.innerHTML += `
                     <div class="text-center py-20 opacity-50">
-                        <svg class="w-16 h-16 mx-auto mb-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                        <svg class="w-16 h-16 mx-auto mb-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
                         <p>No hay registros aún.</p>
                     </div>
                 `;
@@ -604,10 +621,6 @@
             loadCharts();
         }
 
-        // [Mismas funciones loadCharts, selectZone, editEntry, updateIntensity, saveEntry, deleteEntry, exportToCSV]
-        // Se mantienen idénticas, solo asegúrate de que Chart.js usa colores visibles en Dark/Light mode si fuera necesario, 
-        // pero por ahora los colores son hardcoded y funcionan bien en ambos.
-        
         function loadCharts() {
             const [year, month] = state.statsMonth.split('-');
             const daysInMonth = new Date(year, month, 0).getDate();
@@ -753,7 +766,6 @@
             
             localStorage.setItem('headache_entries', JSON.stringify(state.entries));
             state.formData = resetFormData();
-            // Go to Calendar after save for better feedback
             router('calendar');
         }
 
@@ -762,7 +774,7 @@
             if(confirm("¿Eliminar registro?")) {
                 state.entries = state.entries.filter(e => e.id !== id);
                 localStorage.setItem('headache_entries', JSON.stringify(state.entries));
-                render(); // Re-render current view
+                render(); 
             }
         }
 
