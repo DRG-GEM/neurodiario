@@ -86,11 +86,9 @@
         };
 
         function resetFormData() {
-            // Ajustar zona horaria local
-            const now = new Date();
-            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            // Usamos formato YYYY-MM-DD simple
             return {
-                date: now.toISOString().slice(0, 16),
+                date: new Date().toISOString().split('T')[0],
                 zone: '',
                 intensity: 5,
                 duration: '',
@@ -164,9 +162,17 @@
             } else {
                 state.entries.forEach(entry => {
                     const zone = ZONES.find(z => z.id === entry.zone) || { label: entry.zone, color: 'bg-gray-500' };
-                    const date = new Date(entry.date);
-                    const dateStr = date.toLocaleDateString();
-                    const timeStr = date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                    
+                    // Formato de fecha seguro (YYYY-MM-DD o ISO antiguo)
+                    let dateStr = "";
+                    try {
+                        // Intentamos parsear manualmente para evitar cambios de zona horaria
+                        const rawDate = entry.date.split('T')[0]; // Toma la parte de la fecha
+                        const [y, m, d] = rawDate.split('-');
+                        dateStr = `${d}/${m}/${y}`;
+                    } catch (e) {
+                        dateStr = entry.date; // Fallback
+                    }
                     
                     const card = document.createElement('div');
                     card.className = `p-4 rounded-2xl border relative group transition-all bg-slate-800 border-slate-700 mb-4 hover:bg-slate-750`;
@@ -174,7 +180,7 @@
                         <div class="flex justify-between items-start mb-2">
                             <div>
                                 <p class="text-xs text-slate-400 font-medium uppercase tracking-wider flex items-center gap-1">
-                                    <span>${dateStr}</span> <span class="mx-1">•</span> <span>${timeStr}</span>
+                                    <span>📅 ${dateStr}</span>
                                 </p>
                                 <h3 class="font-bold text-lg mt-1 text-white">${zone.label}</h3>
                             </div>
@@ -212,8 +218,8 @@
                 <form id="addForm" class="space-y-6">
                     <!-- FECHA -->
                     <div class="p-4 rounded-2xl bg-slate-800">
-                        <label class="flex items-center gap-2 text-sm font-medium text-slate-400 mb-2">📅 ¿Cuándo empezó?</label>
-                        <input type="datetime-local" id="f_date" required class="w-full p-3 rounded-xl bg-slate-900 border border-slate-700 text-white focus:border-indigo-500 outline-none" value="${state.formData.date}">
+                        <label class="flex items-center gap-2 text-sm font-medium text-slate-400 mb-2">📅 Día del dolor</label>
+                        <input type="date" id="f_date" required class="w-full p-3 rounded-xl bg-slate-900 border border-slate-700 text-white focus:border-indigo-500 outline-none" value="${state.formData.date}">
                     </div>
 
                     <!-- ZONA -->
